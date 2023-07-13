@@ -1,0 +1,697 @@
+---
+title: "Slothful Modeling"
+author: "Benton Tripp"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    theme: readable
+    df_print: paged
+---
+
+```{r setup, include=F}
+knitr::opts_chunk$set(echo=T, message=F, warning=F)
+```
+
+## Introduction
+
+## Data Overview
+
+## Environment Setup
+
+```{r env-setup}
+
+# Load libraries
+library(dismo)
+library(tidyverse)
+library(ggpubr)
+library(skimr)
+library(knitr)
+library(kableExtra)
+library(dismo)
+library(leaflet)
+library(raster)
+library(spatstat)
+library(maxnet)
+library(caret)
+
+# Set seed for reproducibility
+set.seed(19)
+
+# Get sloth data
+if (file.exists("data/bradypus.rds")) {
+  bradypus <- readRDS("data/bradypus.rds")
+} else {
+  bradypus <- gbif("Bradypus", "variegatus*", sp=T)
+  saveRDS(bradypus, "data/bradypus.rds")
+}
+
+# Get raster data
+files <- list.files(path=paste("data", sep=''), pattern='grd', full.names=T)
+rasters <- stack(files)
+
+# TODO: LIMIT EVERYTHING TO SOUTH AMERICA
+# See https://rpubs.com/mlibxmda/SDM_1
+
+raster.names <- c(
+  "mean.temp",
+  "prec.annual",
+  "prec.wet.qrtr",
+  "prec.dry.qrtr",
+  "max.temp",
+  "min.temp",
+  "temp.rng",
+  "mean.tmp.wet.qrtr",
+  "biome", # https://www.worldwildlife.org/publications/terrestrial-biomeions-of-the-world 
+  "lon",
+  "lat"
+) 
+
+# Create a raster for longitude
+lon.raster <- rasters[[1]]
+values(lon.raster) <- xFromCell(lon.raster, seq_len(ncell(lon.raster)))
+lon.raster[is.na(rasters[[1]])] <- NA
+
+# Create a raster for latitude
+lat.raster <- rasters[[1]]
+values(lat.raster) <- yFromCell(lat.raster, seq_len(ncell(lat.raster)))
+lat.raster[is.na(rasters[[1]])] <- NA
+
+rasters <- stack(rasters, lon.raster, lat.raster)
+names(rasters) <- raster.names
+
+# Get unique biome categories
+biome.categories <- unique(values(rasters$biome))
+biome.categories <- biome.categories[!is.na(biome.categories)]
+
+# Function to generate binary raster for a given biome
+create.binary.raster <- function(biome.value, biome.categories, .ras, rasters) {
+  cat("Biome Value: ", biome.value, "\n")
+  
+  # Create a reclassification matrix
+  # For the current biome category, set a range of [biome.value, biome.value]
+  # For the other categories, set a range of [min(other), max(other)]
+  other.categories <- biome.categories[biome.categories != biome.value]
+  cat("Other Categories: ", paste(other.categories, collapse=", "), "\n")
+  reclass.matrix <- matrix(c(biome.value, 1), ncol=2, byrow=T) %>%
+    rbind(
+      purrr::map_vec(other.categories, ~matrix(c(.x, 0), ncol=2, byrow=T))
+    )
+  
+  # Reclassify the biome raster
+  binary.raster <- reclassify(.ras, rcl = reclass.matrix)
+  
+  # Set NA values
+  binary.raster[is.na(rasters[[1]])] <- NA
+  
+  return(binary.raster)
+}
+
+# Apply the function to each biome category
+binary.rasters <- map(biome.categories, 
+                      ~create.binary.raster(.x, biome.categories, 
+                                            rasters$biome, rasters))
+
+# Name the rasters
+names(binary.rasters) <- paste0("biome", biome.categories)
+
+# Stack the rasters together
+binary.rasters <- stack(binary.rasters)
+
+# Add to original rasters stack
+binary.rasters <- stack(subset(rasters, raster.names[raster.names != "biome"]), 
+                        binary.rasters)
+
+# Check for all NA values
+# any(purrr::map_lgl(seq(1,13), ~all(is.na(as.matrix(binary.rasters[[.x]])))))
+
+
+# Create random points on cells of the environmental rasters within the 
+# extent of bradypus, and avoiding cells containing points from bradypus;
+# These will be used as pseudo-absence points
+pseudo.absence <- randomPoints(rasters, n=nrow(bradypus), p=bradypus, 
+                               ext=extent(bradypus), extf=1.01) %>%
+  SpatialPoints(crs(bradypus))
+
+pseudo.absence.df <- pseudo.absence %>%
+  extract(rasters, .) %>% 
+  as.data.frame() %>% 
+  dplyr::select(-lat, -lon) %>% 
+  cbind(
+    pseudo.absence %>%
+      as.data.frame() %>%
+      dplyr::select(x, y) %>% 
+      rename(lon=x, lat=y)
+  ) %>%
+  mutate(biome = as.factor(biome),
+         presence = 0) %>%
+  mutate(na.vals = if_any(names(rasters), ~is.na(.x))) %>%
+  filter(!na.vals) %>%
+  dplyr::select(-na.vals)
+
+pseudo.absence.df <- pseudo.absence.df %>%
+  filter(., if_any(names(rasters), ~!is.na(.x))) 
+
+# Presence values
+presence.df <- extract(rasters, bradypus) %>%
+  as.data.frame() %>%
+  dplyr::select(-lat, -lon) %>%
+  cbind(
+    bradypus %>% 
+      as.data.frame() %>% 
+      dplyr::select(lon, lat)
+  ) %>%
+  mutate(biome = as.factor(biome),
+         presence = 1) %>%
+  mutate(na.vals = if_any(names(rasters), ~is.na(.x))) %>%
+  filter(!na.vals) %>%
+  dplyr::select(-na.vals)
+
+# Combine presence data with pseudo-absence data
+df <- rbind(presence.df, pseudo.absence.df)
+
+# View data structure
+str(df)
+
+```
+
+```{r map-data, fig.width=6, fig.height=6}
+
+# Map the data
+map.data <- function(df, 
+                     rasters, 
+                     .raster=as.character(seq(1, 11)), 
+                     title="") {
+  
+  if (is.null(.raster)) {
+    .raster <- .raster %>% 
+      match.arg() %>% 
+      as.integer()
+  }
+  
+  # Raster overlay
+  overlay <- rasters[[.raster]]
+  
+  # Find the middle point of the raster
+  center <- c(x=mean(df$lon), 
+              y=mean(df$lat))
+  
+  # Get finite values range
+  finite_values <- raster::values(overlay)[is.finite(raster::values(overlay))]
+  
+  # Use this range in colorNumeric()
+  color.palette <- colorNumeric(palette = "viridis", 
+                                domain = range(finite_values),
+                                na.color = "#00000000") 
+  
+  leaflet() %>%
+    addTiles() %>%  
+    addRasterImage(overlay, colors = color.palette) %>%
+    addCircleMarkers(lat=~lat, lng=~lon, data=df %>% filter(presence == 0), 
+                     color="black", radius=0.5, group="Absence") %>%
+    addCircleMarkers(lat=~lat, lng=~lon, data=df %>% filter(presence == 1), 
+                     color="red", radius=0.5, group="Presence") %>%
+    addLayersControl(overlayGroups = c("Presence", "Absence")) %>%
+    addControl(html = paste("<h4>", title, "</h4>"), position = "topleft") %>%
+    fitBounds(lng1 = min(df$lon) - .5, lat1 = min(df$lat) - .5, 
+              lng2 = max(df$lon) + .5, lat2 = max(df$lat) + .5) %>% 
+    addLegend("bottomright", 
+              colors = c("red", "black"), 
+              labels = c("Presence", "Absence"), 
+              title = "Observations")
+}
+
+map.data(df, rasters, .raster=9, title="Three-Toed-Sloths | Biomes")
+
+
+```
+
+```{r eda-presence}
+
+### TO BE USED AS INPUTS ###
+.bar <- T
+.pie <- F
+.table <- F
+############################
+
+if (.bar) {
+  # Bar plot for presence variable
+  ggplot(df, aes(x=factor(presence))) + 
+    geom_bar(fill='steelblue', alpha=0.7) +
+    labs(x='Presence', y='Count', title='Bar Plot of Presence') +
+    theme_minimal()
+} 
+
+if (.pie) {
+  # Pie chart for presence variable
+  df %>% 
+    count(presence) %>%
+    ggplot(aes(x = "", y = n, fill = factor(presence))) +
+    geom_bar(stat = "identity", width = 1) +
+    coord_polar("y", start = 0) +
+    theme_void() +
+    labs(fill = "Presence", title = "Pie Chart of Presence") 
+} 
+
+if (.table) {
+  # Count table for presence variable
+  df %>% 
+    count(presence) %>%
+    kable("html") %>%
+    kable_styling("striped", full_width = F)
+}
+
+```
+
+```{r eda-hist, fig.height=8, fig.width=16}
+
+### TO BE USED AS INPUTS ###
+.density <- T
+.hist <- T
+.table <- F
+############################
+
+if (.table) {
+
+# Filter out only the required variables
+df %>% 
+  dplyr::select(-c("presence", "biome")) %>%
+  skim_without_charts() %>%
+  dplyr::select(-skim_type, -complete_rate) %>%
+  rename(variable = skim_variable) %>%
+  kable("html") %>%
+  kable_styling("striped", full_width = F)
+
+} else {
+  map(names(df)[!(names(df) %in% c("presence", "biome"))], 
+    function(.x) {
+      p <- ggplot(df, aes(x = !!sym(.x)))
+      if (.density) {
+        if (.hist) {
+          p <- p + geom_histogram(aes(y=after_stat(density)), 
+                       bins = 30, fill = '#f78f88', alpha = 0.5) +
+            geom_density(color="black", linewidth=1) 
+        } else {
+          p <- p + geom_density(color="black", fill='#f78f88', alpha=0.5, linewidth=1) 
+        }
+      } else {
+        p <- p + geom_histogram(bins = 30, fill = '#f78f88', alpha = 0.5) 
+      }
+      p <- p + theme_minimal() +
+        labs(title = paste("Histogram of ", .x),
+             x = .x,
+             y = ifelse(.density, "Density", "Frequency"))
+    }
+    ) %>%
+  ggarrange(plotlist=., ncol=4, nrow=3) 
+}
+
+```
+
+```{r eda-categorical}
+
+### TO BE USED AS INPUTS ###
+.bar <- T
+.pie <- F
+.table <- F
+############################
+
+if (.bar) {
+  # Bar plot for biome variable
+  ggplot(df, aes(x=factor(biome))) + 
+    geom_bar(fill='steelblue', alpha=0.7) +
+    labs(x='Biome', y='Count', title='Bar Plot of Biomes') +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+} 
+
+if (.pie) {
+  # Pie chart for biome variable
+  df %>% 
+    count(biome) %>%
+    ggplot(aes(x = "", y = n, fill = factor(biome))) +
+    geom_bar(stat = "identity", width = 1) +
+    coord_polar("y", start = 0) +
+    theme_void() +
+    labs(fill = "Biome", title = "Pie Chart of Biome") 
+} 
+
+if (.table) {
+  # Count table for biome variable
+  df %>% 
+    count(biome) %>%
+    kable("html") %>%
+    kable_styling("striped", full_width = F)
+}
+```
+
+## Stratified Splits
+
+Split into train/test using presence/absence, geographical grid patterned strata, and biomes.
+
+```{r split}
+
+stratified.split.idx <- function(df, p=0.75, lat.lon.bins=10) {
+  # Cut along lat/lon values to create grids (lat.bin & lon.bin)
+  # lat.lon.bins is the number of divisions you want
+  df$lat.bin <- cut(df$lat, breaks=lat.lon.bins, labels = F)
+  df$lon.bin <- cut(df$lon, breaks=lat.lon.bins, labels = F)
+  
+  # Create a new variable combining the stratification variables:
+  # - lat.bin
+  # - lon.bin
+  # - presence
+  # - biome
+  df %>%
+    mutate(strata = paste(lat.bin, lon.bin, presence, biome, sep = "|")) %>%
+    pull(strata) %>%
+    # Create the data partitions
+    createDataPartition(., p = p, list = F) %>%
+    suppressWarnings()
+}
+
+# Create the training and test datasets
+train.index <- stratified.split.idx(df)
+df.train <- df[train.index, ] 
+df.test <- df[-train.index, ] 
+
+```
+
+## Inohomogenous Poisson Process Model (IPP)
+
+```{r ipp}
+
+# Get presence-only from train/test (no pseudo-absence data for IPP)
+
+presence.df.train <- df.train %>% filter(presence == 1)
+presence.df.test <- df.test %>% filter(presence == 1)
+
+# Convert the data to a ppp object
+locations <- ppp(presence.df.train$lon, 
+                 presence.df.train$lat, 
+                 window=owin(range(df$lon), 
+                             range(df$lat)))
+
+# List of raster names
+raster.names <- c("mean.temp", "prec.annual", "prec.wet.qrtr", "prec.dry.qrtr",
+                  "max.temp", "min.temp", "temp.rng", "mean.tmp.wet.qrtr")
+
+# Initialize a list to hold the binned rasters
+raster.imgs <- map(names(rasters), ~as.im(rasters[[.x]]))
+names(raster.imgs) <- names(rasters)
+
+.f <- formula(paste0("locations ~ ", paste(names(raster.imgs), collapse = " + ")))
+
+# Fit the IPP model
+fit <- ppm(.f, covariates=raster.imgs)
+
+# Print the summary of the model
+summary(fit)
+
+```
+
+
+```{r ipp-intense-dist}
+
+# Use predict.ppm to generate predicted intensities
+predicted.intensities <- predict(fit, newdata=raster.imgs)
+
+intensity.values <- as.matrix(predicted.intensities) %>% 
+  reduce(c) %>% 
+  keep(~!is.na(.x))
+
+ggplot(data=data.frame(x=intensity.values), aes(x)) +
+  geom_density(size=1) + 
+  labs(title = "IPP Model Intensity Distribution")
+
+```
+
+
+```{r ipp-probabilities}
+# Convert the im object to a raster
+predicted.raster <- raster(predicted.intensities)
+
+# If there is an intensity (count) of at least one, then predict it as a probability of 1
+# Calculate the probability of finding at least one sloth at a location as 
+# 1 - exp(-λ), where λ is the predicted intensity. This calculation is based 
+# on the cumulative distribution function of the Poisson distribution.
+prob.at.least.1 <- calc(predicted.raster, function(x) {1 - exp(-x)})
+crs(prob.at.least.1) <- crs(rasters[[1]])
+
+plot(prob.at.least.1)
+
+```
+
+### Measure Model Accuracy Using Test Data
+
+```{r test-ipp}
+
+# Extract the predicted probabilities for the test points
+ipp.yhat <- extract(prob.at.least.1, 
+                    df.test[,c("lon", "lat")])
+
+cutoff <- 0.5
+confusionMatrix(factor(ifelse(ipp.yhat >= cutoff, 1, 0), levels=c(0, 1)), 
+                factor(df.test$presence, levels=c(0, 1)),
+                positive="1")
+
+```
+
+```{r maxent}
+
+# Create a dataframe suitable for the maxent model
+maxent.df.train <- df.train[, c("lon", "lat", "presence")]
+
+# Transform data into the format needed for Maxent
+train.x <- df.train %>% 
+  dplyr::select(-c("lon", "lat", "presence")) 
+
+train.y <- df.train$presence
+
+test.x <- df.test %>% 
+  dplyr::select(-c("lon", "lat", "presence"))
+
+test.y <- df.test$presence
+
+# Create Maxent Model
+mx <- maxent(x=train.x, p=train.y, factors="biome")
+
+
+# Make predictions on full raster
+maxent.raster <- dismo::predict(mx, x=rasters)
+
+crs(maxent.raster) <- crs(rasters[[1]])
+
+plot(maxent.raster)
+
+```
+
+```{r maxent-test}
+
+# Make predictions on the test data
+maxent.yhat <- predict(mx, x=test.x)
+
+# Create a confusion matrix for the maxent model
+confusionMatrix(factor(ifelse(maxent.yhat >= cutoff, 1, 0), levels=c(0, 1)), 
+                factor(test.y, levels=c(0, 1)),
+                positive = "1")
+
+```
+
+```{r maxent-dismo-eval}
+
+# Evaluate with dismo
+eval <- dismo::evaluate(p=maxent.yhat, a=test.y, model=mx)
+
+threshold(eval)
+```
+
+```{r modeling}
+
+
+### TO BE USED AS INPUTS ###
+# "glm", "glmnet", "rpart", "ranger", "gbm", "knn", "AdaBag", "LogitBoost", "gbm"
+.model.type <- "rpart"
+############################
+
+# Convert biomes to binary dummy variables (if needed)
+dummy.biome.train <- model.matrix(~biome-1, data=df.train)
+dummy.biome.test <- model.matrix(~biome-1, data=df.test)
+
+df.train <- df.train %>%
+  mutate(presence = factor(presence, levels=c(0, 1)))
+df.test <- df.test %>%
+  mutate(presence = factor(presence, levels=c(0, 1)))
+
+
+df.train.dummies <- cbind(dplyr::select(df.train, -biome), dummy.biome.train)
+df.test.dummies <- cbind(dplyr::select(df.test, -biome), dummy.biome.test)
+
+# Define cv control for caret::train
+control <- trainControl(method = "cv", number = 5)
+
+if (.model.type == "glm") {
+  # Logistic Regression
+  # Tuning params: None
+  
+  # Train model
+  fit <- train(presence ~ ., 
+               data = df.train.dummies, 
+               method = "glm", 
+               family = "binomial",
+               preProcess = c("center", "scale"),
+               trControl = control, 
+               metric = "Accuracy")
+  
+} else if (.model.type == "glmnet") {
+  # Logistic Regression w/ Regularization
+  # Tuning params: alpha, lambda
+  
+  # Create tuning grid
+  grid <- expand.grid(alpha = 0:1, 
+                      lambda = seq(0.001, 0.1, by = 0.001))
+
+  # Train model
+  fit <- train(presence ~ ., 
+               data = df.train.dummies, 
+               method = "glmnet", 
+               family = "binomial",
+               preProcess = c("center", "scale"),
+               trControl = control, 
+               tuneGrid = grid,
+               metric = "Accuracy")
+  
+} else if (.model.type == "rpart") {
+  # Decision Tree
+  # Tuning params: cp
+  
+  # Create tuning grid
+  grid <- expand.grid(cp = seq(0.01, 0.5, by = 0.01))
+  
+  # Train model
+  fit <- train(presence ~ ., 
+               data = df.train, 
+               method = "rpart", 
+               tuneGrid = grid,
+               preProcess = c("center", "scale"),
+               trControl = control, 
+               metric = "Accuracy")
+  
+} else if (.model.type == "ranger") {
+  # Random Forest
+  # Tuning params: mtry, splitrule, min.node.size
+  
+  # Create tuning grid
+  grid <- expand.grid(mtry = c(1, sqrt(ncol(df.train)), ncol(df.train)), 
+                      splitrule = c("gini", "extratrees"),
+                      min.node.size = c(1, 5, 10))
+  
+  # Train model
+  fit <- train(presence ~ ., 
+               data = df.train, 
+               method = "ranger", 
+               tuneGrid = grid,
+               trControl = control, 
+               metric = "Accuracy")
+  
+} else if (.model.type == "knn") {
+  # K-Nearest Neighbors
+  # Tuning params: k
+  
+  # Create tuning grid
+  grid <- expand.grid(k = seq(3, 21, by = 2))
+  
+  # Train model
+  fit <- fit <- train(presence ~ ., 
+               data = df.train.dummies, 
+               method = "knn", 
+               tuneGrid = grid,
+               preProcess = c("center", "scale"),
+               trControl = control, 
+               metric = "Accuracy")
+  
+} else if (.model.type == "AdaBag") {
+  # Bagged AdaBoost
+  # Tuning params: mfinal, maxdepth
+  
+  # Create tuning grid
+  grid <- expand.grid(mfinal = seq(50, 500, by = 50), 
+                      maxdepth = c(1, 5, 10))
+  
+  # Train model
+  fit <- train(presence ~ ., 
+               data = df.train, 
+               method = "AdaBag", 
+               tuneGrid = grid,
+               trControl = control, 
+               metric = "Accuracy")
+  
+} else if (.model.type == "LogitBoost") {
+  # Boosted Logistic Regression
+  # Tuning params: nIter
+  
+  # Create tuning grid
+  grid <- expand.grid(nIter = seq(100, 1000, by = 100))
+  
+  # Train model
+  fit <- train(presence ~ ., 
+               data = df.train, 
+               method = "LogitBoost", 
+               tuneGrid = grid,
+               trControl = control, 
+               metric = "Accuracy")
+  
+} else if (.model.type == "gbm") {
+  # Stochastic Gradient Boosting
+  # Tuning params: n.trees, interaction.depth, shrinkage, n.minobsinnode
+  
+  # Create tuning grid
+  grid <- expand.grid(
+    n.trees = seq(250, 750, by = 250), 
+    interaction.depth = 10,
+    shrinkage = 0.3,
+    n.minobsinnode = c(1, 10)
+  )
+  
+  # Train model
+  fit <- train(presence ~ ., 
+               data = df.train, 
+               method = "gbm", 
+               tuneGrid = grid,
+               trControl = control, 
+               metric = "Accuracy")
+  
+}
+
+if (.model.type %in% c("glm", "glmnet", "knn")) {
+  # Generate predictions on rasters (to plot probabilities)
+  preds.raster <- 1 - raster::predict(object=binary.rasters, model=fit, type="prob")
+  
+  # Generate predictions test set
+  preds.test <- predict(fit, newdata = df.test.dummies)
+
+  # Compute metrics using confusion matrix
+  cm <- confusionMatrix(preds.test, df.test.dummies$presence, positive="1")
+  
+} else {
+  # Generate predictions on rasters (to plot probabilities)
+  preds.raster <- 1 - raster::predict(object=rasters, model=fit, type="prob")
+
+  # Generate predictions test set
+  preds.test <- predict(fit, newdata = df.test)
+
+  # Compute metrics using confusion matrix
+  cm <- confusionMatrix(preds.test, df.test$presence, positive="1")
+}
+
+# Show metrics of model using test data
+cm
+plot(preds.raster)
+
+```
+
+
+
+
