@@ -25,6 +25,8 @@ knitr::opts_chunk$set(echo=T, message=F, warning=F)
 
 # Load libraries
 library(dismo)
+library(sp)
+library(maptools)
 library(tidyverse)
 library(ggpubr)
 library(skimr)
@@ -40,20 +42,33 @@ library(caret)
 # Set seed for reproducibility
 set.seed(19)
 
+# Load South America data
+data("wrld_simpl")
+south.america <- subset(wrld_simpl, wrld_simpl$SUBREGION==5 | wrld_simpl$SUBREGION==13)
+
 # Get sloth data
 if (file.exists("data/bradypus.rds")) {
   bradypus <- readRDS("data/bradypus.rds")
 } else {
   bradypus <- gbif("Bradypus", "variegatus*", sp=T)
+  
+  # Assign initial CRS - WGS 84 (EPSG: 4326)
+  sp::proj4string(bradypus) <- sp::CRS("+init=epsg:4326") 
+  
+  # Reproject bradypus points to match the crs of South America
+  bradypus <- sp::spTransform(bradypus, CRS=crs(south.america))
+  
+  # Reproject the bradypus points
+  bradypus <- sp::spTransform(bradypus, CRS=crs(south.america))
+  
   saveRDS(bradypus, "data/bradypus.rds")
 }
+
+
 
 # Get raster data
 files <- list.files(path=paste("data", sep=''), pattern='grd', full.names=T)
 rasters <- stack(files)
-
-# TODO: LIMIT EVERYTHING TO SOUTH AMERICA
-# See https://rpubs.com/mlibxmda/SDM_1
 
 raster.names <- c(
   "mean.temp",
@@ -88,13 +103,12 @@ biome.categories <- biome.categories[!is.na(biome.categories)]
 
 # Function to generate binary raster for a given biome
 create.binary.raster <- function(biome.value, biome.categories, .ras, rasters) {
-  cat("Biome Value: ", biome.value, "\n")
-  
+  # cat("Biome Value: ", biome.value, "\n")
   # Create a reclassification matrix
   # For the current biome category, set a range of [biome.value, biome.value]
   # For the other categories, set a range of [min(other), max(other)]
   other.categories <- biome.categories[biome.categories != biome.value]
-  cat("Other Categories: ", paste(other.categories, collapse=", "), "\n")
+  # cat("Other Categories: ", paste(other.categories, collapse=", "), "\n")
   reclass.matrix <- matrix(c(biome.value, 1), ncol=2, byrow=T) %>%
     rbind(
       purrr::map_vec(other.categories, ~matrix(c(.x, 0), ncol=2, byrow=T))
@@ -127,6 +141,13 @@ binary.rasters <- stack(subset(rasters, raster.names[raster.names != "biome"]),
 # Check for all NA values
 # any(purrr::map_lgl(seq(1,13), ~all(is.na(as.matrix(binary.rasters[[.x]])))))
 
+# Fix crs for raster stacks
+crs(rasters) <- crs(south.america)
+crs(binary.rasters) <- crs(south.america)
+
+# Set extent to be South America
+extent(rasters) <- extent(south.america)
+extent(binary.rasters) <- extent(south.america)
 
 # Create random points on cells of the environmental rasters within the 
 # extent of bradypus, and avoiding cells containing points from bradypus;
@@ -135,8 +156,10 @@ pseudo.absence <- randomPoints(rasters, n=nrow(bradypus), p=bradypus,
                                ext=extent(bradypus), extf=1.01) %>%
   SpatialPoints(crs(bradypus))
 
+pseudo.absence <- sp::spTransform(pseudo.absence, CRS=crs(south.america))
+
 pseudo.absence.df <- pseudo.absence %>%
-  extract(rasters, .) %>% 
+  raster::extract(rasters, .) %>% 
   as.data.frame() %>% 
   dplyr::select(-lat, -lon) %>% 
   cbind(
@@ -155,7 +178,7 @@ pseudo.absence.df <- pseudo.absence.df %>%
   filter(., if_any(names(rasters), ~!is.na(.x))) 
 
 # Presence values
-presence.df <- extract(rasters, bradypus) %>%
+presence.df <- raster::extract(rasters, bradypus) %>%
   as.data.frame() %>%
   dplyr::select(-lat, -lon) %>%
   cbind(
@@ -171,6 +194,11 @@ presence.df <- extract(rasters, bradypus) %>%
 
 # Combine presence data with pseudo-absence data
 df <- rbind(presence.df, pseudo.absence.df)
+
+saveRDS(rasters, "data/rasters.rds")
+saveRDS(pseudo.absence.df, "data/pseudo.absence.df.rds")
+saveRDS(presence.df, "data/presence.df.rds")
+saveRDS(df, "data/df.rds")
 
 # View data structure
 str(df)
@@ -381,6 +409,26 @@ df.test <- df[-train.index, ]
 
 ## Inohomogenous Poisson Process Model (IPP)
 
+In this context, the inhomogeneous Poisson process model (IPP) is defined as:
+
+1. Probability Density Function (PDF):
+
+\[
+f(x) = \lambda e^{-\lambda x}, \quad x \geq 0
+\]
+
+where \(\lambda\) is the intensity of the process.
+
+2. Cumulative Distribution Function (CDF):
+
+\[
+F(x) = 1 - e^{-\lambda x}, \quad x \geq 0
+\]
+
+In the case of the IPP model, the intensity \(\lambda\) is not a constant, but is a function of the location, \(x\). Hence the term 'inhomogeneous'. 
+
+In the code snippet: `prob.at.least.1 <- calc(predicted.raster, function(x) {1 - exp(-x)})`
+
 ```{r ipp}
 
 # Get presence-only from train/test (no pseudo-absence data for IPP)
@@ -449,8 +497,8 @@ plot(prob.at.least.1)
 ```{r test-ipp}
 
 # Extract the predicted probabilities for the test points
-ipp.yhat <- extract(prob.at.least.1, 
-                    df.test[,c("lon", "lat")])
+ipp.yhat <- raster::extract(prob.at.least.1, 
+                            df.test[,c("lon", "lat")])
 
 cutoff <- 0.5
 confusionMatrix(factor(ifelse(ipp.yhat >= cutoff, 1, 0), levels=c(0, 1)), 
@@ -617,8 +665,8 @@ if (.model.type == "glm") {
   # Tuning params: mfinal, maxdepth
   
   # Create tuning grid
-  grid <- expand.grid(mfinal = seq(50, 500, by = 50), 
-                      maxdepth = c(1, 5, 10))
+  grid <- expand.grid(mfinal = 50, 
+                      maxdepth = c(5, 10))
   
   # Train model
   fit <- train(presence ~ ., 
@@ -677,7 +725,7 @@ if (.model.type %in% c("glm", "glmnet", "knn")) {
   
 } else {
   # Generate predictions on rasters (to plot probabilities)
-  preds.raster <- 1 - raster::predict(object=rasters, model=fit, type="prob")
+  preds.raster <- raster::predict(object=rasters, model=fit, type="prob")
 
   # Generate predictions test set
   preds.test <- predict(fit, newdata = df.test)
@@ -691,7 +739,5 @@ cm
 plot(preds.raster)
 
 ```
-
-
 
 

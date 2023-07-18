@@ -1,0 +1,74 @@
+
+html {
+  font-family: Roboto Mono !important;
+  background-color: #fff !important;
+}
+
+#uiBackground {
+  background-color:#fff !important;
+}
+
+#headerSection {
+  height:6vh;
+  min-height: 55px;
+  position: relative;
+}
+
+#headerSection::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  border-bottom: 1px solid #cccccc;
+}
+
+#mainTitle {
+  margin-left:15px !important; 
+}
+
+.wrapper {
+  margin-top:5px !important;
+}
+
+.shiny-row {
+  display:flex !important;
+  flex-direction:row !important;
+}
+
+a {
+  font-size: 18px !important;
+}
+
+#overviewIntroSection, #ippOverviewSection, #edaCatSection {
+  padding-top: 2% !important;
+  padding-left: 5% !important;
+  padding-right: 20% !important;
+  padding-bottom: 2% !important;
+}
+
+#overviewIntroSection, #edaCatSection {
+  font-size: 20px !important;
+}
+
+#ippOverviewSection {
+  font-size: 18px !important;
+  padding-left: 3.5% !important;
+  padding-right: 12% !important;
+}
+
+
+
+.MJXc-display {
+  text-align: left !important;
+}
+
+.MathJax_CHTML {
+  font-size: 100% !important;
+}
+
+.bold-panel-header {
+  font-size:18px !important;
+  font-weight:bold !important;
+  margin-left:5px !important;
+}
