@@ -19,6 +19,25 @@ knitr::opts_chunk$set(echo=T, message=F, warning=F)
 
 ## Data Overview
 
+bio1 = Mean annual temperature
+bio2 = Mean diurnal range (mean of max temp - min temp)
+bio3 = Isothermality (bio2/bio7) (* 100)
+bio4 = Temperature seasonality (standard deviation *100)
+bio5 = Max temperature of warmest month
+bio6 = Min temperature of coldest month
+bio7 = Temperature annual range (bio5-bio6)
+bio8 = Mean temperature of the wettest quarter
+bio9 = Mean temperature of driest quarter
+bio10 = Mean temperature of warmest quarter
+bio11 = Mean temperature of coldest quarter
+bio12 = Total (annual) precipitation
+bio13 = Precipitation of wettest month
+bio14 = Precipitation of driest month
+bio15 = Precipitation seasonality (coefficient of variation)
+bio16 = Precipitation of wettest quarter
+bio17 = Precipitation of driest quarter
+bio18 = Precipitation of warmest quarter
+
 ## Environment Setup
 
 ```{r env-setup}
@@ -38,68 +57,19 @@ library(raster)
 library(spatstat)
 library(maxnet)
 library(caret)
+library(leaflet.extras)
 
 # Set seed for reproducibility
 set.seed(19)
 
-# Load South America data
-data("wrld_simpl")
-south.america <- subset(wrld_simpl, wrld_simpl$SUBREGION==5 | wrld_simpl$SUBREGION==13)
 
-# Get sloth data
-if (file.exists("data/bradypus.rds")) {
-  bradypus <- readRDS("data/bradypus.rds")
-} else {
-  bradypus <- gbif("Bradypus", "variegatus*", sp=T)
-  
-  # Assign initial CRS - WGS 84 (EPSG: 4326)
-  sp::proj4string(bradypus) <- sp::CRS("+init=epsg:4326") 
-  
-  # Reproject bradypus points to match the crs of South America
-  bradypus <- sp::spTransform(bradypus, CRS=crs(south.america))
-  
-  # Reproject the bradypus points
-  bradypus <- sp::spTransform(bradypus, CRS=crs(south.america))
-  
-  saveRDS(bradypus, "data/bradypus.rds")
-}
-
-
-
-# Get raster data
-files <- list.files(path=paste("data", sep=''), pattern='grd', full.names=T)
-rasters <- stack(files)
-
-raster.names <- c(
-  "mean.temp",
-  "prec.annual",
-  "prec.wet.qrtr",
-  "prec.dry.qrtr",
-  "max.temp",
-  "min.temp",
-  "temp.rng",
-  "mean.tmp.wet.qrtr",
-  "biome", # https://www.worldwildlife.org/publications/terrestrial-biomeions-of-the-world 
-  "lon",
-  "lat"
-) 
-
-# Create a raster for longitude
-lon.raster <- rasters[[1]]
-values(lon.raster) <- xFromCell(lon.raster, seq_len(ncell(lon.raster)))
-lon.raster[is.na(rasters[[1]])] <- NA
-
-# Create a raster for latitude
-lat.raster <- rasters[[1]]
-values(lat.raster) <- yFromCell(lat.raster, seq_len(ncell(lat.raster)))
-lat.raster[is.na(rasters[[1]])] <- NA
-
-rasters <- stack(rasters, lon.raster, lat.raster)
-names(rasters) <- raster.names
-
-# Get unique biome categories
-biome.categories <- unique(values(rasters$biome))
-biome.categories <- biome.categories[!is.na(biome.categories)]
+.file.check <- list(
+  bradypus = file.exists("data/bradypus.rds"),
+  rasters = file.exists("data/rasters.rds"),
+  binary.rasters = file.exists("data/binary.rasters.rds"),
+  pseudo.absence = file.exists("data/pseudo.absence.df.rds"),
+  presence = file.exists("data/presence.df.rds")
+)
 
 # Function to generate binary raster for a given biome
 create.binary.raster <- function(biome.value, biome.categories, .ras, rasters) {
@@ -123,82 +93,156 @@ create.binary.raster <- function(biome.value, biome.categories, .ras, rasters) {
   return(binary.raster)
 }
 
-# Apply the function to each biome category
-binary.rasters <- map(biome.categories, 
-                      ~create.binary.raster(.x, biome.categories, 
-                                            rasters$biome, rasters))
+# Load South America data
+data("wrld_simpl")
+south.america <- subset(wrld_simpl, wrld_simpl$SUBREGION==5 | wrld_simpl$SUBREGION==13)
 
-# Name the rasters
-names(binary.rasters) <- paste0("biome", biome.categories)
+raster.names <- c(
+  "mean.temp",
+  "prec.annual",
+  "prec.wet.qrtr",
+  "prec.dry.qrtr",
+  "max.temp",
+  "min.temp",
+  "temp.rng",
+  "mean.tmp.wet.qrtr",
+  "biome", # https://www.worldwildlife.org/publications/terrestrial-biomeions-of-the-world 
+  "lon",
+  "lat"
+) 
 
-# Stack the rasters together
-binary.rasters <- stack(binary.rasters)
+# Get sloth data
+if (.file.check$bradypus) {
+  bradypus <- readRDS("data/bradypus.rds")
+} else {
+  bradypus <- gbif("Bradypus", "variegatus*", sp=T)
+  # Assign initial CRS - WGS 84 (EPSG: 4326)
+  sp::proj4string(bradypus) <- sp::CRS("+init=epsg:4326") 
+  
+  # Reproject bradypus points to match the crs of South America
+  bradypus <- sp::spTransform(bradypus, CRS=crs(south.america))
+  
+  # Reproject the bradypus points
+  bradypus <- sp::spTransform(bradypus, CRS=crs(south.america))
+  saveRDS(bradypus, "data/bradypus.rds")
+}
+# Get rasters data
+if (.file.check$rasters) {
+  rasters <- readRDS("data/rasters.rds")
+} else {
+  files <- list.files(path=paste("data", sep=''), pattern='grd', full.names=T)
+  rasters <- stack(files)
+  
+  # Create a raster for longitude
+  lon.raster <- rasters[[1]]
+  values(lon.raster) <- xFromCell(lon.raster, seq_len(ncell(lon.raster)))
+  lon.raster[is.na(rasters[[1]])] <- NA
+  
+  # Create a raster for latitude
+  lat.raster <- rasters[[1]]
+  values(lat.raster) <- yFromCell(lat.raster, seq_len(ncell(lat.raster)))
+  lat.raster[is.na(rasters[[1]])] <- NA
+  
+  rasters <- stack(rasters, lon.raster, lat.raster)
+  names(rasters) <- raster.names
+  
+  # Fix crs for raster stack
+  crs(rasters) <- crs(south.america)
+  
+  # Set extent to be South America
+  extent(rasters) <- extent(south.america)
+  
+  saveRDS(rasters, "data/rasters.rds")
+}
 
-# Add to original rasters stack
-binary.rasters <- stack(subset(rasters, raster.names[raster.names != "biome"]), 
-                        binary.rasters)
+# Get unique biome categories
+biome.categories <- unique(values(rasters$biome))
+biome.categories <- biome.categories[!is.na(biome.categories)]
 
-# Check for all NA values
-# any(purrr::map_lgl(seq(1,13), ~all(is.na(as.matrix(binary.rasters[[.x]])))))
-
-# Fix crs for raster stacks
-crs(rasters) <- crs(south.america)
-crs(binary.rasters) <- crs(south.america)
-
-# Set extent to be South America
-extent(rasters) <- extent(south.america)
-extent(binary.rasters) <- extent(south.america)
+# Get binary rasters
+if (.file.check$binary.rasters) {
+  binary.rasters <- readRDS("data/binary.rasters.rds")
+} else {
+  # Apply the function to each biome category
+  binary.rasters <- map(biome.categories, 
+                        ~create.binary.raster(.x, biome.categories, 
+                                              rasters$biome, rasters))
+  
+  # Name the rasters
+  names(binary.rasters) <- paste0("biome", biome.categories)
+  
+  # Stack the rasters together
+  binary.rasters <- stack(binary.rasters)
+  
+  # Add to original rasters stack
+  binary.rasters <- stack(subset(rasters, raster.names[raster.names != "biome"]), 
+                          binary.rasters)
+  
+  # Check for all NA values
+  # any(purrr::map_lgl(seq(1,13), ~all(is.na(as.matrix(binary.rasters[[.x]])))))
+  
+  saveRDS(binary.rasters, "data/binary.rasters.rds")
+}
 
 # Create random points on cells of the environmental rasters within the 
 # extent of bradypus, and avoiding cells containing points from bradypus;
 # These will be used as pseudo-absence points
-pseudo.absence <- randomPoints(rasters, n=nrow(bradypus), p=bradypus, 
-                               ext=extent(bradypus), extf=1.01) %>%
-  SpatialPoints(crs(bradypus))
-
-pseudo.absence <- sp::spTransform(pseudo.absence, CRS=crs(south.america))
-
-pseudo.absence.df <- pseudo.absence %>%
-  raster::extract(rasters, .) %>% 
-  as.data.frame() %>% 
-  dplyr::select(-lat, -lon) %>% 
-  cbind(
-    pseudo.absence %>%
-      as.data.frame() %>%
-      dplyr::select(x, y) %>% 
-      rename(lon=x, lat=y)
-  ) %>%
-  mutate(biome = as.factor(biome),
-         presence = 0) %>%
-  mutate(na.vals = if_any(names(rasters), ~is.na(.x))) %>%
-  filter(!na.vals) %>%
-  dplyr::select(-na.vals)
-
-pseudo.absence.df <- pseudo.absence.df %>%
-  filter(., if_any(names(rasters), ~!is.na(.x))) 
+if (.file.check$pseudo.absence) {
+  pseudo.absence.df <- readRDS("data/pseudo.absence.df.rds")
+} else {
+  
+  pseudo.absence <- randomPoints(rasters, n=nrow(bradypus), p=bradypus, 
+                                 ext=extent(bradypus), extf=1.01) %>%
+    SpatialPoints(crs(bradypus))
+  
+  pseudo.absence <- sp::spTransform(pseudo.absence, CRS=crs(south.america))
+  
+  pseudo.absence.df <- pseudo.absence %>%
+    raster::extract(rasters, .) %>% 
+    as.data.frame() %>% 
+    dplyr::select(-lat, -lon) %>% 
+    cbind(
+      pseudo.absence %>%
+        as.data.frame() %>%
+        dplyr::select(x, y) %>% 
+        rename(lon=x, lat=y)
+    ) %>%
+    mutate(biome = as.factor(biome),
+           presence = 0) %>%
+    mutate(na.vals = if_any(names(rasters), ~is.na(.x))) %>%
+    filter(!na.vals) %>%
+    dplyr::select(-na.vals)
+  
+  pseudo.absence.df <- pseudo.absence.df %>%
+    filter(., if_any(names(rasters), ~!is.na(.x))) 
+  
+  saveRDS(pseudo.absence.df, "data/pseudo.absence.df.rds")
+}
 
 # Presence values
-presence.df <- raster::extract(rasters, bradypus) %>%
-  as.data.frame() %>%
-  dplyr::select(-lat, -lon) %>%
-  cbind(
-    bradypus %>% 
-      as.data.frame() %>% 
-      dplyr::select(lon, lat)
-  ) %>%
-  mutate(biome = as.factor(biome),
-         presence = 1) %>%
-  mutate(na.vals = if_any(names(rasters), ~is.na(.x))) %>%
-  filter(!na.vals) %>%
-  dplyr::select(-na.vals)
+if (.file.check$presence) {
+  presence.df <- readRDS("data/presence.df.rds")
+} else {
+  presence.df <- raster::extract(rasters, bradypus) %>%
+    as.data.frame() %>%
+    dplyr::select(-lat, -lon) %>%
+    cbind(
+      bradypus %>% 
+        as.data.frame() %>% 
+        dplyr::select(lon, lat)
+    ) %>%
+    mutate(biome = as.factor(biome),
+           presence = 1) %>%
+    mutate(na.vals = if_any(names(rasters), ~is.na(.x))) %>%
+    filter(!na.vals) %>%
+    dplyr::select(-na.vals)
+  saveRDS(presence.df, "data/presence.df.rds")
+}
 
 # Combine presence data with pseudo-absence data
 df <- rbind(presence.df, pseudo.absence.df)
 
-saveRDS(rasters, "data/rasters.rds")
-saveRDS(pseudo.absence.df, "data/pseudo.absence.df.rds")
-saveRDS(presence.df, "data/presence.df.rds")
-saveRDS(df, "data/df.rds")
+
 
 # View data structure
 str(df)
@@ -226,8 +270,29 @@ map.data <- function(df,
   center <- c(x=mean(df$lon), 
               y=mean(df$lat))
   
+  # Check original CRS and extent
+  original_crs <- raster::crs(overlay) %>% as.character()
+  original_extent <- raster::extent(overlay) %>% as.character()
+  cat("Original CRS:", original_crs, "\n")
+  cat("Original extent:", original_extent, "\n")
+  
+  # Reproject raster
+  reprojected_overlay <- raster::projectRaster(overlay, crs = CRS("+init=epsg:3857"))
+  
+  # Check CRS and extent after reprojection
+  reprojected_crs <- raster::crs(reprojected_overlay) %>% as.character()
+  reprojected_extent <- raster::extent(reprojected_overlay) %>% as.character()
+  cat("Reprojected CRS:", reprojected_crs, "\n")
+  cat("Reprojected extent:", reprojected_extent, "\n")
+  
+  
+  
+  # Transform the overlay to EPSG:3857
+  overlay <- projectRaster(overlay, crs = CRS("+init=epsg:3857"))
+
+  
   # Get finite values range
-  finite_values <- raster::values(overlay)[is.finite(raster::values(overlay))]
+  finite_values <- raster::values(resampled)[is.finite(raster::values(resampled))]
   
   # Use this range in colorNumeric()
   color.palette <- colorNumeric(palette = "viridis", 
@@ -242,7 +307,8 @@ map.data <- function(df,
     addCircleMarkers(lat=~lat, lng=~lon, data=df %>% filter(presence == 1), 
                      color="red", radius=0.5, group="Presence") %>%
     addLayersControl(overlayGroups = c("Presence", "Absence")) %>%
-    addControl(html = paste("<h4>", title, "</h4>"), position = "topleft") %>%
+    hideGroup("Absence") %>%
+    addControl(html = paste("<h4>", title, "</h4>"), position = "bottomleft") %>%
     fitBounds(lng1 = min(df$lon) - .5, lat1 = min(df$lat) - .5, 
               lng2 = max(df$lon) + .5, lat2 = max(df$lat) + .5) %>% 
     addLegend("bottomright", 
@@ -251,7 +317,7 @@ map.data <- function(df,
               title = "Observations")
 }
 
-map.data(df, rasters, .raster=9, title="Three-Toed-Sloths | Biomes")
+map.data(df, rasters, .raster=8, title="Three-Toed-Sloths")
 
 
 ```

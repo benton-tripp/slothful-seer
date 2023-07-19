@@ -25,10 +25,24 @@ html {
 
 #mainTitle {
   margin-left:15px !important; 
+  apply white-space: nowrap !important;
 }
 
 .wrapper {
   margin-top:5px !important;
+}
+
+.content-wrapper {
+  min-height: 100vh !important;
+}
+
+.content, #mainBodySection, #edaConditionalPage, #edaMapSection {
+  min-height: 675px !important;
+}
+
+#map, #map .leaflet {
+  min-height: 660px !important;
+  max-width: 650px !important;
 }
 
 .shiny-row {
@@ -40,24 +54,83 @@ a {
   font-size: 18px !important;
 }
 
-#overviewIntroSection, #ippOverviewSection, #edaCatSection {
-  padding-top: 2% !important;
+#overviewIntroSection, #dataOverviewSection {
   padding-left: 5% !important;
+}
+
+#edaCatSection, #edaTargetSection, #dataOverviewSection {
+  padding-top: 0.5% !important;
   padding-right: 20% !important;
   padding-bottom: 2% !important;
 }
 
-#overviewIntroSection, #edaCatSection {
+#edaCatSection, #edaTargetSection {
+  padding-left: 1% !important;
+}
+
+#overviewIntroSection, #edaCatSection, #edaMapSection, #edaContSection,
+#edaDataSection, #edaTargetSection, #dataOverviewSection {
   font-size: 20px !important;
 }
 
+#edaContSection, #edaDataSection {
+  padding-top: 2% !important;
+  padding-bottom: 2% !important;
+}
+
+#edaContSection #cont_table {
+  font-size: 18px !important;
+  font-weight: normal !important;
+}
+
 #ippOverviewSection {
+  font-size: 16.5px !important;
+}
+
+#edaMapSection {
   font-size: 18px !important;
   padding-left: 3.5% !important;
   padding-right: 12% !important;
 }
 
+#edaMapSection {
+  height: 100% !important;
+}
 
+#select_data_filter, #cont_plot_type {
+    display: flex !important;
+    align-items: left !important;
+    margin-left: 15px !important;
+}
+
+#select_data_filter .shiny-options-group, #cont_plot_type .shiny-options-group {
+  margin-left: 10px !important;
+}
+
+#slothCaption, #slothCaption a {
+  font-size:13px !important;
+  max-width: 300px !important;
+  font-weight: normal !important;
+  color:gray;
+}
+
+#modelingInfoSidebar {
+  margin-top: 10px !important;
+  min-width: 300px !important;
+  background-color: #dddddd !important;
+  padding-left:5px !important;
+  max-height: 190px !important;
+  min-height: 190px !important;
+  margin-right:15px !important;
+  border-radius: 5px !important; /* Slightly rounded corners */
+  border: 1px solid #cccccc !important; /* Thin border slightly darker than the background */
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1) !important; /* Faint shadow */
+}
+
+#modelingInfoSidebar ul {
+  list-style-type: none !important; 
+  padding-left: 0 !important;
+}
 
 .MJXc-display {
   text-align: left !important;

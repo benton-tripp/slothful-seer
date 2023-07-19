@@ -176,5 +176,5 @@ if (.file.check$presence) {
 }
 
 # Combine presence data with pseudo-absence data
-df <- rbind(presence.df, pseudo.absence.df)
+df <- rbind(presence.df, pseudo.absence.df) %>% arrange(presence)
 
