@@ -263,7 +263,7 @@ model.page <- conditionalPanel(
       tabsetPanel(
         id = "modelTabs",
         tabPanel(
-          "Modeling Info",
+          "Model Info",
           div(
             class="shiny-row",
             div(
@@ -454,14 +454,16 @@ model.page <- conditionalPanel(
           )
         ),
         tabPanel(
-          "Model Fitting"
+          "Model Fitting",
           # Train/Test Split
+          numericInput("split_perc", "Split %", value=0.75, min=0.5, max=0.99, step=0.1),
           # # IPP
           # MaxEnt
           # Logistic Regression
           # Optionally apply regularization
           # Decision Tree
           # Random Forest
+          actionButton("apply_model_updates", "Apply Updates")
         ),
         tabPanel(
           "Prediction"

@@ -143,9 +143,20 @@ function(input, output, session) {
     "Shiny.setInputValue(\"menuItemSelected\", \"mdlOverviewSelect\", {priority: 'event'});"
   )
   
-  # train.index <- stratified.split.idx(df)
-  # df.train <- df[train.index, ] 
-  # df.test <- df[-train.index, ] 
+  observeEvent(
+    eventExpr=input$apply_model_updates, # Only when apply is clicked
+    handlerExpr={
+      if (input$modelTabs == "Model Fitting") {
+        train.index <- stratified.split.idx(df, p=input$split_perc)
+        df.train <- df[train.index, ] 
+        df.test <- df[-train.index, ] 
+      }
+    },
+    ignoreInit = T
+  )
+  
+  # 
+  
   # Get presence-only from train/test (no pseudo-absence data for IPP)
   # presence.df.train <- df.train %>% filter(presence == 1)
   # presence.df.test <- df.test %>% filter(presence == 1)
