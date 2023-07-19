@@ -456,17 +456,240 @@ model.page <- conditionalPanel(
         tabPanel(
           "Model Fitting",
           # Train/Test Split
-          numericInput("split_perc", "Split %", value=0.75, min=0.5, max=0.99, step=0.1),
-          # # IPP
-          # MaxEnt
-          # Logistic Regression
-          # Optionally apply regularization
-          # Decision Tree
-          # Random Forest
-          actionButton("apply_model_updates", "Apply Updates")
+          div(
+            id="modelFittingSection",
+            h3("Fit Custom Models"),
+            div(
+              id="modelFittingSharedParams",
+              class="shiny-row",
+              div(
+                div(style="height:26px;"),
+                div(
+                  style="height:28px; width:80px; text-align:right;
+                                 margin:4px; margin-bottom:14px; margin-top:0;", 
+                  span(style="color:red", "* required")),
+              ),
+              div(
+                style="max-width:150px;",
+                numericInput("split_perc", "Split %", value=0.75, min=0.5, max=0.99, step=0.1)
+              ),
+              div(
+                div(style="height:26px;"),
+                div(
+                  style="height:28px; width:80px; text-align:right; margin-bottom:14px; ", 
+                  span(style="color:red", "* required")),
+              ),
+              div(
+                style="max-width:150px; margin-left:4px;",
+                numericInput("k_folds", "Cross Validation Folds", value=5, min=3, max=10, step=1)
+              )
+            ),
+            div(
+              class="shiny-row",
+              id="modelFittingParams",
+              # GLM/Logistic Regression
+              # Optionally apply regularization
+              div(
+                style="width:365px;",
+                id="modelFittingGLM",
+                div(
+                  style="padding:10px; padding-left:20px; padding-top:0; max-width:300px;",
+                  h3("GLM (Logistic Regression)"),
+                  tags$i("When Alpha=0 and Lambda=0 (no regularization), this model is 
+                            just a traditional Logistic Regression.")
+                  # TODO: Describe L1/L2/Elastic Net Regularization here
+                ),
+                # Params: alpha, lambda
+                # Allow for up to 9 combinations (3 of each)
+                div(
+                  tags$ul(
+                    style="list-style-type: none; padding: 0; margin: 0;",
+                    tags$li(
+                      class="shiny-row",
+                      div(style="width:80px; margin:2px;"),
+                      div(style="width:110px; margin:2px;", h4("Alpha")),
+                      div(style="width:110px; margin:2px;", h4("Lambda"))
+                    ),
+                    tags$li(
+                      div(
+                        class="shiny-row",
+                        div(style="width:80px; text-align:right;  margin:2px;", 
+                            span(style="color:red", "* required")),
+                        div(style="width:110px;  margin:2px;",
+                            numericInput("glm_alpha_1", label=NULL, value=0.0, 
+                                         min=0.0, max=1.0, step=0.1)),
+                        div(style="width:110px;  margin:2px;",
+                            numericInput("glm_lambda_1", label=NULL, value=0.0, min=0.0, step=0.1))
+                      ),
+                      div(
+                        class="shiny-row",
+                        div(style="width:80px; text-align:right;  margin:2px;", 
+                            tags$i("optional")),
+                        div(style="width:110px;  margin:2px;", 
+                            numericInput("glm_alpha_2", label=NULL, value=NULL, 
+                                         min=0.0, max=1.0, step=0.1)),
+                        div(style="width:110px;  margin:2px;", 
+                            numericInput("glm_lambda_2", label=NULL, value=NULL, min=0.0, step=0.1))
+                      ),
+                      div(
+                        class="shiny-row",
+                        div(style="width:80px; text-align:right;  margin:2px;", 
+                            tags$i("optional")),
+                        div(style="width:110px;  margin:2px;",
+                            numericInput("glm_alpha_3", label=NULL, value=NULL, 
+                                         min=0.0, max=1.0, step=0.1)),
+                        div(style="width:110px;  margin:2px;",
+                            numericInput("glm_lambda_3", label=NULL, value=NULL, min=0.0, step=0.1))
+                      )
+                    )
+                  )
+                )
+              ),
+              # Decision Tree
+              div(
+                style="width:290px;",
+                id="modelFittingTree",
+                div(
+                  style="padding:10px; padding-left:0; padding-top:0; max-width:250px;",
+                  h3("Classification Tree"),
+                  tags$i("Description")
+                ),
+                
+                # Params: cp
+                # Up to 10 combinations of the complexity parameter
+                div(
+                  h4("Complexity Parameter Value Range"),
+                  div(
+                    style="max-width:230px;",
+                    div(
+                      class="shiny-row",
+                      div(
+                        div(style="height:26px;"),
+                        div(
+                          style="height:28px; width:80px; text-align:right;
+                                 margin:4px; margin-bottom:14px; margin-top:0;", 
+                          span(style="color:red", "* required")),
+                      ),
+                      numericInput("start_cp", "Minumum Value", value=0, min=0, max=100, step=0.1)
+                      ),
+                    div(
+                      class="shiny-row",
+                      div(
+                        div(style="height:26px;"),
+                        div(
+                          style="height:28px; width:80px; text-align:right;
+                                 margin:4px; margin-bottom:14px; margin-top:0;", 
+                          span(style="color:red", "* required")),
+                      ),
+                      numericInput("range_cp", "Values in Range", value=1, min=1, max=10, step=1)
+                    ),
+                    div(
+                      class="shiny-row",
+                      div(
+                        div(style="height:26px;"),
+                        div(
+                          style="height:28px; width:80px; text-align:right;
+                                 margin:4px; margin-bottom:14px; margin-top:0;", 
+                          span(style="color:red", "* required")),
+                      ),
+                      numericInput("step_cp", "Step Size", value=0.1, min=0.1, max=100, step=0.1)
+                    )
+                  )
+                )
+              ),
+              # Random Forest
+              # Params: mtry, splitrule, min.node.size
+              # Up to 18 combinations
+              div(
+                style="width:375px;",
+                id="modelFittingForest",
+                div(
+                  style="padding:10px; padding-left:0; padding-top:0; max-width:365px;",
+                  h3("Random Forest"),
+                  tags$i("Description")
+                ),
+                div(
+                  style="max-width:210px; ",
+                  div(
+                    id="splitDiv",
+                    class="shiny-row",
+                    div(
+                      div(style="height:26px;"),
+                      div(
+                        style="height:28px; width:60px; text-align:right;
+                                 margin-right:4px; margin-bottom:4px; margin-top:0;", 
+                        span(style="color:red", "* required")),
+                    ),
+                    selectInput("split_rule", "Split Rule", 
+                                choices=c("gini", "extratrees"), 
+                                selected="gini", multiple=T,
+                                width="150px")
+                  )
+                ),
+                div(
+                  tags$ul(
+                    style="list-style-type: none; padding: 0; margin: 0;",
+                    tags$li(
+                      id="rfParams",
+                      class="shiny-row",
+                      div(style="width:60px; margin:2px;"),
+                      div(style="width:150px; margin:2px;", h4("# of Splits per Node")),
+                      div(style="width:150px; margin:2px;", h4("Minimal Node Size"))
+                    ),
+                    tags$li(
+                      div(
+                        class="shiny-row",
+                        div(style="width:60px; text-align:right;  margin:2px;", 
+                            span(style="color:red", "* required")),
+                        div(style="width:150px; margin:2px;",
+                            numericInput("mtry_1", label=NULL, value=1, min=1, max=12, step=1)),
+                        div(style="width:150px;  margin:2px;",
+                            numericInput("min_node_1", label=NULL, value=1, min=1, max=10, step=1))
+                      ),
+                      div(
+                        class="shiny-row",
+                        div(style="width:60px; text-align:right;  margin:2px;", 
+                            tags$i("optional")),
+                        div(style="width:150px;  margin:2px;",
+                            numericInput("mtry_2", label=NULL, value=NULL, min=1, max=12, step=1)),
+                        div(style="width:150px;  margin:2px;",
+                            numericInput("min_node_2", label=NULL, value=NULL, min=1, max=10, step=1))
+                      ),
+                      div(
+                        class="shiny-row",
+                        div(style="width:60px; text-align:right;  margin:2px;", 
+                            tags$i("optional")),
+                        div(style="width:150px;  margin:2px;",
+                            numericInput("mtry_3", label=NULL, value=NULL, min=1, max=12, step=1)),
+                        div(style="width:150px;  margin:2px;",
+                            numericInput("min_node_3", label=NULL, value=NULL, min=1, max=10, step=1))
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            hr(),
+            div(
+              class="shiny-row",
+              div(
+                style="margin-left:15px;",
+                actionButton("apply_model_updates", "Apply Updates & Fit Models")
+              ),
+              div(
+                style="margin-left:15px;",
+                actionButton("undo_model_updates", "Undo Changes")
+              ),
+              div(
+                style="margin-left:15px;",
+                actionButton("reset_model_updates", "Reset to Default")
+              )
+            )
+          )
         ),
         tabPanel(
-          "Prediction"
+          "Prediction",
+          # Select Cutoff (default to 0.5)
         ),
         tabPanel(
           "Model Evaluation and Comparison"

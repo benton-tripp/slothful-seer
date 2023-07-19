@@ -50,6 +50,7 @@ html {
   flex-direction:row !important;
 }
 
+
 a {
   font-size: 18px !important;
 }
@@ -132,6 +133,24 @@ a {
   padding-left: 0 !important;
 }
 
+#modelFittingSection input, 
+#modelFittingSection button {
+  color: black !important;
+  font-size: 17px !important
+}
+
+#modelFittingSection button {
+  border-color: #6b6b6b !important;
+}
+
+#splitDiv .shiny-input-container {
+  margin:0 !important;
+}
+
+#rfParams h4 {
+  margin-top: 0 !important;
+}
+
 .MJXc-display {
   text-align: left !important;
 }
@@ -139,6 +158,18 @@ a {
 .MathJax_CHTML {
   font-size: 100% !important;
 }
+
+.ul.no-bullets {
+  list-style-type: none; /* Remove bullets */
+  padding: 0; /* Remove padding */
+  margin: 0; /* Remove margins */
+}
+
+.custom-border table {
+  border: 1px solid black !important;
+  overflow: hidden !important; 
+}
+
 
 .bold-panel-header {
   font-size:18px !important;

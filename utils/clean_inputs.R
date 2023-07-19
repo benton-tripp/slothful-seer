@@ -1,0 +1,1 @@
+clean.inputs <- function(x) sort(unique(x[!is.na(x) & !is.null(x)]))

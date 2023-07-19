@@ -143,41 +143,299 @@ function(input, output, session) {
     "Shiny.setInputValue(\"menuItemSelected\", \"mdlOverviewSelect\", {priority: 'event'});"
   )
   
-  observeEvent(
-    eventExpr=input$apply_model_updates, # Only when apply is clicked
-    handlerExpr={
-      if (input$modelTabs == "Model Fitting") {
-        train.index <- stratified.split.idx(df, p=input$split_perc)
-        df.train <- df[train.index, ] 
-        df.test <- df[-train.index, ] 
-      }
-    },
-    ignoreInit = T
-  )
+  # Store the previous values of the model parameters
+  prev.model.inputs <- reactiveVal({
+    list(
+      p=0.75,
+      k.folds=5,
+      alpha.1=0,
+      alpha.2=NA,
+      alpha.3=NA,
+      lambda.1=0.0,
+      lambda.2=NA,
+      lambda.3=NA,
+      cp.start=0,
+      cp.range=1,
+      cp.step=0.1,
+      split.rule="gini", 
+      mtry.1=1,
+      min.node.1=1,
+      mtry.2=NA,
+      min.node.2=NA,
+      mtry.3=NA,
+      min.node.3=NA
+    )
+  })
   
-  # 
+  observeEvent(input$undo_model_updates, {
+    # When 'Undo Changes' is clicked, revert to the previous values
+    prevVals <- prev.model.inputs()
+    
+    # Use `update*` functions to change the inputs
+    updateNumericInput(session, "split_perc", value = prevVals$p)
+    updateNumericInput(session, "k_fold", value=prevVals$k.fold)
+    updateNumericInput(session, "glm_alpha_1", value = prevVals$alpha.1)
+    updateNumericInput(session, "glm_alpha_2", value = prevVals$alpha.2)
+    updateNumericInput(session, "glm_alpha_3", value = prevVals$alpha.3)
+    updateNumericInput(session, "glm_lambda_1", value = prevVals$lambda.1)
+    updateNumericInput(session, "glm_lambda_2", value = prevVals$lambda.2)
+    updateNumericInput(session, "glm_lambda_3", value = prevVals$lambda.3)
+    updateNumericInput(session, "start_cp", value = prevVals$cp.start)
+    updateNumericInput(session, "range_cp", value = prevVals$cp.range)
+    updateNumericInput(session, "step_cp", value = prevVals$cp.step)
+    updateSelectInput(session, "split_rule", selected = prevVals$split.rule)
+    updateNumericInput(session, "mtry_1", value = prevVals$mtry.1)
+    updateNumericInput(session, "min_node_1", value = prevVals$min.node.1)
+    updateNumericInput(session, "mtry_2", value = prevVals$mtry.2)
+    updateNumericInput(session, "min_node_2", value = prevVals$min.node.2)
+    updateNumericInput(session, "mtry_3", value = prevVals$mtry.3)
+    updateNumericInput(session, "min_node_3", value = prevVals$min.node.3)
+    
+    # Reset train/test split data
+    # TODO: You might need additional code/logic to reset train/test split data
+  })
   
-  # Get presence-only from train/test (no pseudo-absence data for IPP)
-  # presence.df.train <- df.train %>% filter(presence == 1)
-  # presence.df.test <- df.test %>% filter(presence == 1)
-  # Create a dataframe suitable for the maxent model
-  # maxent.df.train <- df.train[, c("lon", "lat", "presence")]
-  # Transform data into the format needed for Maxent
-  # train.x <- df.train %>% 
-  #   dplyr::select(-c("lon", "lat", "presence")) 
-  # train.y <- df.train$presence
-  # test.x <- df.test %>% 
-  #   dplyr::select(-c("lon", "lat", "presence"))
-  # test.y <- df.test$presence
-  # Convert biomes to binary dummy variables (if needed)
-  # dummy.biome.train <- model.matrix(~biome-1, data=df.train)
-  # dummy.biome.test <- model.matrix(~biome-1, data=df.test)
-  # df.train.factor <- df.train %>%
-  #   mutate(presence = factor(presence, levels=c(0, 1)))
-  # df.test.factor <- df.test %>%
-  #  mutate(presence = factor(presence, levels=c(0, 1)))
-  # df.train.dummies <- cbind(dplyr::select(df.train, -biome), dummy.biome.train)
-  # df.test.dummies <- cbind(dplyr::select(df.test, -biome), dummy.biome.test)
+  observeEvent(input$reset_model_updates, {
+    # When 'Reset to Default' is clicked, revert to the default values
+    updateNumericInput(session, "split_perc", value = 0.75)
+    updateNumericInput(session, "k_folds", value = 5)
+    updateNumericInput(session, "glm_alpha_1", value = 0.0)
+    updateNumericInput(session, "glm_alpha_2", value = NA)
+    updateNumericInput(session, "glm_alpha_3", value = NA)
+    updateNumericInput(session, "glm_lambda_1", value = 0.0)
+    updateNumericInput(session, "glm_lambda_2", value = NA)
+    updateNumericInput(session, "glm_lambda_3", value = NA)
+    updateNumericInput(session, "step_cp", value=0.1)
+    updateNumericInput(session, "range_cp", value=1)
+    updateNumericInput(session, "start_cp", value=0)
+    updateSelectInput(session, "split_rule", selected = "gini")
+    updateNumericInput(session, "mtry_1", value = 1)
+    updateNumericInput(session, "min_node_1", value = 1)
+    updateNumericInput(session, "mtry_2", value = NA)
+    updateNumericInput(session, "min_node_2", value = NA)
+    updateNumericInput(session, "mtry_3", value = NA)
+    updateNumericInput(session, "min_node_3", value = NA)
+    
+    # Reset train/test split data
+    # TODO: You might need additional code/logic to reset train/test split data
+  })
+  
+  model.vars <- reactive({
+    if (input$modelTabs == "Model Fitting") {
+      if (any(purrr::map_lgl(
+        c(input$split_perc, input$k_folds, input$glm_alpha_1, 
+          input$glm_lambda_1, input$start_cp, input$range_cp, 
+          input$step_cp, input$mtry_1, input$min_node_1),
+        ~(is.null(.x) | is.na(.x) | !is.numeric(.x))
+      )) | is.null(input$split_rule)) {
+        showNotification(tags$span("One or more of the required values is missing"), type="error")
+        return(NULL)
+      } 
+      # Prepare Data
+      prepared.data <- tryCatch(prepare.data(df, input$split_perc), 
+                                error = function(e) {
+                                  showNotification(paste0("Data preparation error: ", 
+                                                          e$message), type = "error")
+                                  return(NULL)
+                                })
+      
+      if (is.null(prepared.data)) return(NULL)
+      
+      # Convert Biomes to Binary Dummy Variables
+      dummy.data <- convert.biomes.to.dummy(prepared.data$train, prepared.data$test)
+      
+      # Error-check for cp
+      cp.seq <- tryCatch(
+        {seq_len(input$range_cp) * input$step_cp + input$start_cp},
+        warning = function(w) {
+          showNotification(paste0("CP sequence warning: ", w$message), 
+                           type = "warning")
+          return(NULL)
+        },
+        error = function(e) {
+          showNotification(paste0("CP sequence error: ", e$message), type = "error")
+          return(NULL)
+        })
+      
+      if (is.null(cp.seq)) return(NULL)
+      
+      # Extract model inputs and prepare data for modeling
+      model.inputs <- list(
+        p=input$split_perc,
+        k.folds=input$k_folds,
+        alpha.1=input$glm_alpha_1,
+        alpha.2=input$glm_alpha_2,
+        alpha.3=input$glm_alpha_3,
+        lambda.1=input$glm_lambda_1,
+        lambda.2=input$glm_lambda_2,
+        lambda.3=input$glm_lambda_3,
+        cp=cp.seq,
+        split.rule=input$split_rule, 
+        mtry.1=input$mtry_1,
+        min.node.1=input$min_node_1,
+        mtry.2=input$mtry_2,
+        min.node.2=input$min_node_2,
+        mtry.3=input$mtry_3,
+        min.node.3=input$min_node_3
+      )
+      
+      # Combine results into a list and return
+      return(list(
+        model.variables = model.inputs,
+        train.test.data = c(prepared.data, dummy.data)
+      ))
+    }
+  }) %>% bindEvent(input$apply_model_updates) # Only update when "apply" is clicked
+  
+  observeEvent(model.vars(), {
+    if (!is.null(model.vars())) {
+      # This observer will run when `model.vars` gets updated and is not NULL
+      .inputs <- model.vars()$model.variables
+      
+      # Define training cv control
+      control <- trainControl(method="cv", number=.inputs$k.folds)
+      
+      # Create model training grids
+      
+      # GLM Grid
+      alpha <- clean.inputs(c(.inputs$alpha.1, .inputs$alpha.2, .inputs$alpha.3))
+      lambda <- clean.inputs(c(.inputs$lambda.1, .inputs$lambda.2, .inputs$lambda.3))
+      glm.grid <- expand.grid(
+        alpha=alpha,
+        lambda=lambda
+      )
+      
+      # Tree Grid
+      ct.grid <- data.frame(cp=clean.inputs(.inputs$cp))
+      
+      # Random Forest Grid
+      split.rule <- clean.inputs(.inputs$split.rule)
+      mtry <- clean.inputs(c(.inputs$mtry.1, .inputs$mtry.2, .inputs$mtry.3))
+      min.node <- clean.inputs(c(.inputs$min.node.1, .inputs$min.node.2, .inputs$min.node.3))
+      rf.grid <- expand.grid(
+        splitrule=split.rule,
+        mtry=mtry,
+        min.node.size=min.node
+      )
+      
+      
+      showModal(
+        ui=modalDialog(
+          id="modelModel",
+          title="Confirm Model Parameters",
+          size="l",
+          h2("Details"),
+          div(
+            style="font-size:15px; display: flex; align-items: start;", 
+            div( # First column for bolded content
+              style="display: flex; flex-direction: column; align-items: flex-start;", 
+              tags$p(HTML("<b>Split %:</b>"), style="margin: 0;"),
+              tags$p(HTML("<b>CV Folds:</b>"), style="margin: 0;"),
+              tags$p(tags$b("Baseline Model #1:"), style="margin: 0;"),
+              tags$p(tags$b("Baseline Model #2:"), style="margin: 0;"),
+              tags$p(tags$b("Custom Model #1:"), style="margin: 0;"),
+              tags$p(tags$b("Custom Model #2:"), style="margin: 0;"),
+              tags$p(tags$b("Custom Model #3:"), style="margin: 0;")
+            ),
+            div( # Second column for non-bolded content
+              style="display: flex; flex-direction: column; align-items: flex-start; margin-left: 10px;", 
+              tags$p(paste0(.inputs$p * 100, "%"), style="margin: 0;"),
+              tags$p(.inputs$k.folds, style="margin: 0;"),
+              tags$p("Inhomogenous Poisson Process (IPP) Model", style="margin: 0;"),
+              tags$p("Maximum Entropy Model", style="margin: 0;"),
+              tags$p(ifelse(sum(glm.grid) == 0, 
+                            "GLM (Logistic Regression) Model",
+                            "GLM (Logistic Regression) Model with Regularization"), 
+                     style="margin: 0;"),
+              tags$p("Classification Tree Model", style="margin: 0;"),
+              tags$p("Random Forest Model", style="margin: 0;")
+            )
+          )
+          
+          ,
+          h3("Training Grids"),
+          div(
+            id="modelModalContent",
+            class="shiny-row",
+            div(
+              class="custom-border",
+              style="margin:10px;",
+              h4("GLM"),
+              renderDT(datatable(glm.grid,
+                                 filter='none',
+                                 selection='none',
+                                 rownames=F,
+                                 options=list(
+                                   scrollY="210px",
+                                   paging=F,
+                                   searching=F,
+                                   orderMulti=T,
+                                   info=T,
+                                   lengthChange = F
+                                 )
+              ) %>%
+                formatStyle(columns=names(glm.grid), `font-size`="18px")
+              )
+            ),
+            div(
+              class="custom-border",
+              style="margin:10px;",
+              h4("Classification Tree"),
+              renderDT(datatable(ct.grid,
+                                 filter='none',
+                                 selection='none',
+                                 rownames=F,
+                                 options=list(
+                                   scrollY="210px",
+                                   paging=F,
+                                   searching=F,
+                                   orderMulti=T,
+                                   info=T,
+                                   lengthChange = F
+                                 )
+              ) %>%
+                formatStyle(columns=names(ct.grid), `font-size`="18px")
+              )
+            ),
+            div(
+              class="custom-border",
+              style="margin:10px;",
+              h4("Random Forest"),
+              renderDT(datatable(rf.grid,
+                                 filter='none',
+                                 selection='none',
+                                 rownames=F,
+                                 options=list(
+                                   scrollY="210px",
+                                   paging=F,
+                                   searching=F,
+                                   orderMulti=T,
+                                   info=T,
+                                   lengthChange = F
+                                 )
+              ) %>%
+                formatStyle(columns=names(rf.grid), `font-size`="18px")
+              )
+            )
+          ),
+          footer=div(
+            class="shiny-row",
+            div(actionButton("confirm_model_inputs", "Confirm", icon("check"))),
+            div(style="margin-left:10px;", 
+                actionButton("cancel_model_inputs", "Cancel", icon("cancel"))
+            )
+          )
+        )
+      )
+    }
+  })
+  
+  observeEvent(input$confirm_model_inputs, {
+    removeModal()
+    showNotification(HTML("<b>Modeling Stuff...</b>"))
+  })
+  observeEvent(input$cancel_model_inputs, {removeModal()})
+  
   
 }
 
