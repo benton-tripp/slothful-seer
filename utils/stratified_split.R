@@ -26,9 +26,15 @@ prepare.data <- function(df, p) {
   presence.df.test <- df.test %>% filter(presence == 1)
   
   df.train.factor <- df.train %>%
-    mutate(presence = factor(presence, levels=c(0, 1)))
+    mutate(presence = factor(ifelse(presence == 1, 
+                                    "presence", "no.presence"), 
+                             levels=c("no.presence", "presence"))
+    )
   df.test.factor <- df.test %>%
-    mutate(presence = factor(presence, levels=c(0, 1)))
+    mutate(presence = factor(ifelse(presence == 1, 
+                                    "presence", "no.presence"), 
+                             levels=c("no.presence", "presence"))
+    )
   
   list(train = df.train, 
        test = df.test, 

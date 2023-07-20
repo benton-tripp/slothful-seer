@@ -31,15 +31,8 @@ train.model <- function(
                  metric = "Accuracy")
     # Classification Tree or Random Forest
   } else if (model.type %in% c("tree", "rf")) {
-    if (model.type == "rf") {
-      y <- factor(ifelse(df$presence == "1", "presence", "no.presence"), 
-                  levels=c("no.presence", "presence"))
-    } else {
-      y <- df$presence
-    }
-    
     fit <- train(x = df %>% dplyr::select(-presence), 
-                 y = y, 
+                 y = df$presence, 
                  method = ifelse(model.type == "tree", "rpart", "ranger"),
                  trControl = train.control, 
                  tuneGrid = train.grid,

@@ -560,7 +560,7 @@ function(input, output, session) {
       ct.fname <- file.path(tempdir(), ct.fname)
       ct.model.output <- tryCatch(
         {train.model(
-          df=model.vars()$train.test.data$train.dummies,
+          df=model.vars()$train.test.data$train.factor,
           train.control=model.inputs$control,
           train.grid=model.inputs$ct.grid,
           model.type="tree",
@@ -581,7 +581,7 @@ function(input, output, session) {
       rf.fname <- file.path(tempdir(), rf.fname)
       rf.model.output <- tryCatch(
         {train.model(
-          df=model.vars()$train.test.data$train.dummies,
+          df=model.vars()$train.test.data$train.factor,
           train.control=model.inputs$control.w.probs,
           train.grid=model.inputs$rf.grid,
           model.type="rf",
@@ -621,121 +621,125 @@ function(input, output, session) {
       
       # Predictions 
       
-      # IPP 
-      # Use predict.ppm to generate predicted intensities across rasters
-      predicted.intensities <- predict.ppm(model.outputs$ipp, covariates=raster.imgs)
+      js$loadingPanel()
       
-      intensity.values <- as.matrix(predicted.intensities) %>% 
-        reduce(c) %>% 
-        keep(~!is.na(.x))
-      
-      # Convert the im object to a raster
-      predicted.raster <- raster(predicted.intensities)
-      
-      # If there is an intensity (count) of at least one, then predict it as a probability of 1
-      # Calculate the probability of finding at least one sloth at a location as 
-      # 1 - exp(-λ), where λ is the predicted intensity. This calculation is based 
-      # on the cumulative distribution function of the Poisson distribution.
-      prob.at.least.1 <- calc(predicted.raster, function(x) {1 - exp(-x)})
-      crs(prob.at.least.1) <- crs(rasters[[1]])
-      
-      # Extract the predicted probabilities for the test points
-      ipp.yhat <- raster::extract(prob.at.least.1, 
-                                  model.vars()$train.test.data$test[, c("lon", "lat")])
-      
-      ipp.cm <- confusionMatrix(
-        factor(ifelse(ipp.yhat >= input$predictionCutoff, 1, 0), levels=c(0, 1)), 
-        factor(model.vars()$train.test.data$test$presence, levels=c(0, 1)),
-        mode="everything",
-        positive="1")
-      
-      # MaxEnt
-      # Make predictions on full raster
-      maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters)
-      crs(maxent.raster) <- crs(rasters[[1]])
-      
-      # Make predictions on the test data
-      test.x <- model.vars()$train.test.data$test %>% 
-        dplyr::select(-c("presence"))
-      test.y <- model.vars()$train.test.data$test$presence
-      maxent.yhat <- predict(model.outputs$maxent, x=test.x)
-      
-      # Create a confusion matrix for the maxent model
-      maxent.cm <- confusionMatrix(
-        factor(ifelse(maxent.yhat >= input$predictionCutoff, 1, 0), levels=c(0, 1)), 
-        factor(test.y, levels=c(0, 1)),
-        mode="everything",
-        positive = "1")
-      
-      # Make predictions on full raster
-      maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters)
-      crs(maxent.raster) <- crs(rasters[[1]])
-      
-      # GLM
-      # Generate predictions on rasters (to plot probabilities)
-      glm.raster <- 1 - raster::predict(object=binary.rasters, model=model.outputs$glm, type="prob")
-      
-      # Generate predictions test set
-      glm.yhat <- predict(model.outputs$glm, 
-                          newdata = model.vars()$train.test.data$test.dummies)
-      
-      # Compute metrics using confusion matrix
-      glm.cm <- confusionMatrix(
-        glm.yhat, model.vars()$train.test.data$test.dummies$presence, 
-        positive="1",
-        mode="everything")
-      
-      # Classification Tree
-      # Generate predictions on rasters (to plot probabilities)
-      ct.raster <- raster::predict(object=binary.rasters, model=model.outputs$ct, type="prob")
-      
-      # Generate predictions test set
-      ct.yhat <- predict(model.outputs$ct, 
-                         newdata = model.vars()$train.test.data$test.dummies)
-      
-      # Compute metrics using confusion matrix
-      ct.cm <- confusionMatrix(
-        ct.yhat, model.vars()$train.test.data$test.factor$presence, 
-        positive="1",
-        mode="everything")
-      
-      # Random Forest
-      # Generate predictions on rasters (to plot probabilities)
-      
-      rf.raster <- 1 - raster::predict(
-        object=binary.rasters, 
-        model=model.outputs$rf,
-        type="prob")
-      
-      # Generate predictions test set
-      rf.yhat <- predict(model.outputs$rf, 
-                         newdata = model.vars()$train.test.data$test.dummies)
-      
-      # Compute metrics using confusion matrix
-      y <- factor(
-        ifelse(model.vars()$train.test.data$test.factor$presence == "1", 
-               "presence", "no.presence"), levels=c("no.presence", "presence"))
-      rf.cm <- confusionMatrix(
-        rf.yhat, y, 
-        positive="presence",
-        mode="everything")
-      
-      # Evaluation
-      print(ipp.cm)
-      print(maxent.cm)
-      print(glm.cm)
-      print(ct.cm)
-      print(rf.cm)
-      
-      # IPP 
-      
-      # MaxEnt
-      
-      # GLM
-      
-      # Classification Tree
-      
-      # Random Forest
+      # Incorporate the progress bar using withProgress
+      withProgress(message = "Predicting/Evaluating Models", value = 0, {
+        # IPP 
+        # Use predict.ppm to generate predicted intensities across rasters
+        predicted.intensities <- predict.ppm(model.outputs$ipp, covariates=raster.imgs)
+        
+        intensity.values <- as.matrix(predicted.intensities) %>% 
+          reduce(c) %>% 
+          keep(~!is.na(.x))
+        
+        # Convert the im object to a raster
+        predicted.raster <- raster(predicted.intensities)
+        
+        # If there is an intensity (count) of at least one, then predict it as a probability of 1
+        # Calculate the probability of finding at least one sloth at a location as 
+        # 1 - exp(-λ), where λ is the predicted intensity. This calculation is based 
+        # on the cumulative distribution function of the Poisson distribution.
+        prob.at.least.1 <- calc(predicted.raster, function(x) {1 - exp(-x)})
+        crs(prob.at.least.1) <- crs(rasters[[1]])
+        
+        # Extract the predicted probabilities for the test points
+        ipp.yhat <- raster::extract(prob.at.least.1, 
+                                    model.vars()$train.test.data$test[, c("lon", "lat")])
+        
+        ipp.cm <- confusionMatrix(
+          factor(ifelse(ipp.yhat >= input$predictionCutoff, 1, 0), levels=c(0, 1)), 
+          factor(model.vars()$train.test.data$test$presence, levels=c(0, 1)),
+          mode="everything",
+          positive="1")
+        
+        incProgress(0.2, detail = "Finished predicting/evaluating the IPP model.")
+        cat("Finished predicting/evaluating the IPP model\n")
+        
+        # MaxEnt
+        # Make predictions on full raster
+        maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters)
+        crs(maxent.raster) <- crs(rasters[[1]])
+        
+        # Make predictions on the test data
+        test.x <- model.vars()$train.test.data$test %>% 
+          dplyr::select(-c("presence"))
+        test.y <- model.vars()$train.test.data$test$presence
+        maxent.yhat <- predict(model.outputs$maxent, x=test.x)
+        
+        # Create a confusion matrix for the maxent model
+        maxent.cm <- confusionMatrix(
+          factor(ifelse(maxent.yhat >= input$predictionCutoff, 1, 0), levels=c(0, 1)), 
+          factor(test.y, levels=c(0, 1)),
+          mode="everything",
+          positive = "1")
+        
+        # Make predictions on full raster
+        maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters)
+        crs(maxent.raster) <- crs(rasters[[1]])
+        
+        incProgress(0.2, detail = "Finished predicting/evaluating the MaxEnt model.")
+        cat("Finished predicting/evaluating the MaxEnt model\n")
+        
+        # GLM
+        # Generate predictions on rasters (to plot probabilities)
+        glm.raster <- 1 - raster::predict(object=binary.rasters, model=model.outputs$glm, type="prob")
+        
+        # Generate predictions test set
+        glm.yhat <- predict(model.outputs$glm, 
+                            newdata = model.vars()$train.test.data$test.dummies)
+        
+        # Compute metrics using confusion matrix
+        glm.cm <- confusionMatrix(
+          glm.yhat, model.vars()$train.test.data$test.dummies$presence, 
+          positive="presence",
+          mode="everything")
+        
+        incProgress(0.2, detail = "Finished predicting/evaluating the GLM model.")
+        cat("Finished predicting/evaluating the GLM model\n")
+        
+        # Classification Tree
+        # Generate predictions on rasters (to plot probabilities)
+        ct.raster <- raster::predict(object=rasters, model=model.outputs$ct, type="prob",
+                                     factors=list(biome=levels(df$biome)))
+        
+        # Generate predictions test set
+        ct.yhat <- predict(model.outputs$ct, 
+                           newdata = model.vars()$train.test.data$test.factor)
+        
+        # Compute metrics using confusion matrix
+        ct.cm <- confusionMatrix(
+          ct.yhat, model.vars()$train.test.data$test.factor$presence, 
+          positive="presence",
+          mode="everything")
+        
+        incProgress(0.2, detail = "Finished predicting/evaluating the tree model.")
+        cat("Finished predicting/evaluating the tree model\n")
+        
+        # Random Forest
+        # Generate predictions on rasters (to plot probabilities)
+        
+        rf.raster <- 1 - raster::predict(
+          object=rasters, 
+          model=model.outputs$rf,
+          type="prob",
+          factors=list(biome=levels(df$biome)))
+        
+        # Generate predictions test set
+        rf.yhat <- predict(model.outputs$rf, 
+                           newdata = model.vars()$train.test.data$test.factor)
+        
+        # Compute metrics using confusion matrix
+        rf.cm <- confusionMatrix(
+          rf.yhat, model.vars()$train.test.data$test.factor$presence , 
+          positive="presence",
+          mode="everything")
+        
+        incProgress(0.2, detail = "Finished predicting/evaluating the random forest model.")
+        cat("Finished predicting/evaluating the random forest model\n")
+        
+      })
+      js$finishedLoadingPanel()
       
     }
   })
