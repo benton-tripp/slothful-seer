@@ -120,6 +120,31 @@ if (.file.check$binary.rasters) {
   saveRDS(binary.rasters, "data/binary.rasters.rds")
 }
 
+# Presence values
+if (.file.check$presence) {
+  presence.df <- readRDS("data/presence.df.rds")
+} else {
+  presence.df <- raster::extract(rasters, bradypus) %>%
+    as.data.frame() %>%
+    dplyr::select(-lat, -lon) %>%
+    cbind(
+      bradypus %>% 
+        as.data.frame() %>% 
+        dplyr::select(lon, lat)
+    ) %>%
+    mutate(biome = as.factor(biome),
+           presence = 1) %>%
+    mutate(na.vals = if_any(names(rasters), ~is.na(.x))) %>%
+    filter(!na.vals) %>%
+    dplyr::select(-na.vals)
+  saveRDS(presence.df, "data/presence.df.rds")
+}
+
+# Get presence.df points as spdf
+sp.presence <- presence.df %>%
+  sp::SpatialPointsDataFrame(coords = .[, c("lon", "lat")], 
+                             data = ., proj4string = CRS(sp::proj4string(bradypus)))
+
 # Create random points on cells of the environmental rasters within the 
 # extent of bradypus, and avoiding cells containing points from bradypus;
 # These will be used as pseudo-absence points
@@ -127,9 +152,9 @@ if (.file.check$pseudo.absence) {
   pseudo.absence.df <- readRDS("data/pseudo.absence.df.rds")
 } else {
   
-  pseudo.absence <- randomPoints(rasters, n=nrow(bradypus), p=bradypus, 
-                                 ext=extent(bradypus), extf=1.01) %>%
-    SpatialPoints(crs(bradypus))
+  pseudo.absence <- randomPoints(rasters, n=nrow(sp.presence), p=sp.presence, 
+                                 ext=extent(sp.presence), extf=1.01) %>%
+    SpatialPoints(crs(sp.presence))
   
   pseudo.absence <- sp::spTransform(pseudo.absence, CRS=crs(south.america))
   
@@ -155,25 +180,10 @@ if (.file.check$pseudo.absence) {
   saveRDS(pseudo.absence.df, "data/pseudo.absence.df.rds")
 }
 
-# Presence values
-if (.file.check$presence) {
-  presence.df <- readRDS("data/presence.df.rds")
-} else {
-  presence.df <- raster::extract(rasters, bradypus) %>%
-    as.data.frame() %>%
-    dplyr::select(-lat, -lon) %>%
-    cbind(
-      bradypus %>% 
-        as.data.frame() %>% 
-        dplyr::select(lon, lat)
-    ) %>%
-    mutate(biome = as.factor(biome),
-           presence = 1) %>%
-    mutate(na.vals = if_any(names(rasters), ~is.na(.x))) %>%
-    filter(!na.vals) %>%
-    dplyr::select(-na.vals)
-  saveRDS(presence.df, "data/presence.df.rds")
-}
+# Crop rasters to extent of presence points (plus small buffer)
+buffered.extent <- extent(sp.presence) + c(-0.125, 0.125, -0.125, 0.125)
+rasters <- raster::crop(rasters, buffered.extent)
+binary.rasters <- raster::crop(binary.rasters, buffered.extent)
 
 # Combine presence data with pseudo-absence data
 df <- rbind(presence.df, pseudo.absence.df) %>% arrange(presence)
