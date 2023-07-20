@@ -25,7 +25,17 @@ prepare.data <- function(df, p) {
   presence.df.train <- df.train %>% filter(presence == 1)
   presence.df.test <- df.test %>% filter(presence == 1)
   
-  list(train = df.train, test = df.test, presence.train = presence.df.train, presence.test = presence.df.test)
+  df.train.factor <- df.train %>%
+    mutate(presence = factor(presence, levels=c(0, 1)))
+  df.test.factor <- df.test %>%
+    mutate(presence = factor(presence, levels=c(0, 1)))
+  
+  list(train = df.train, 
+       test = df.test, 
+       train.factor = df.train.factor,
+       test.factor = df.test.factor,
+       presence.train = presence.df.train, 
+       presence.test = presence.df.test)
 }
 
 convert.biomes.to.dummy <- function(df.train, df.test) {

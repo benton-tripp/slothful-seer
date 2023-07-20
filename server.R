@@ -100,7 +100,8 @@ function(input, output, session) {
     if (input$edaTabs == "Continuous Data") {
       # Table
       if (input$cont_plot_type != "Table") {
-        output$cont_plot <- renderPlot(cont.eda(df, input$continuous_var, input$cont_plot_type), width=800)
+        output$cont_plot <- renderPlot(cont.eda(df, input$continuous_var, 
+                                                input$cont_plot_type), width=800)
         output$cont_table <- NULL
       } else {
         output$cont_plot <- NULL
@@ -136,7 +137,7 @@ function(input, output, session) {
     }
   })
   
-  ### Modeling #######################################
+  ### Modeling Fitting #######################################
   
   # Initialize Model Info Page Menu default selection
   runjs(
@@ -242,7 +243,8 @@ function(input, output, session) {
       if (is.null(prepared.data)) return(NULL)
       
       # Convert Biomes to Binary Dummy Variables
-      dummy.data <- convert.biomes.to.dummy(prepared.data$train, prepared.data$test)
+      dummy.data <- convert.biomes.to.dummy(prepared.data$train.factor, 
+                                            prepared.data$test.factor)
       
       # Error-check for cp
       cp.seq <- tryCatch(
@@ -256,6 +258,34 @@ function(input, output, session) {
           showNotification(paste0("CP sequence error: ", e$message), type = "error")
           return(NULL)
         })
+      
+      if (any(purrr::map_lgl(
+        clean.inputs(c(input$mtry_1, input$mtry_2, input$mtry_3)), 
+        ~.x > ncol(df) - 1))
+      ) {
+        showNotification(paste0("Error in Random Forest grid input: `mtry` cannot be greater",
+                                " than the number of predictor fields in the training data (i.e., ", 
+                                ncol(df) - 1, ")"), type = "error")
+        return(NULL)
+      }
+      
+      if (any(purrr::map_lgl(
+        clean.inputs(c(input$alpha_1, input$alpha_2, input$alpha_3)), 
+        ~.x > 1 | .x < 0))
+      ) {
+        showNotification(paste0("Error in GLM grid input: `alpha` cannot be greater than 1",
+                                " or less than 0."), type = "error")
+        return(NULL)
+      }
+      
+      if (any(purrr::map_lgl(
+        clean.inputs(c(input$lambda_1, input$lambda_2, input$lambda_3)), 
+        ~.x < 0))
+      ) {
+        showNotification(paste0("Error in GLM grid input: `lambda` cannot be less than 0."), 
+                         type = "error")
+        return(NULL)
+      }
       
       if (is.null(cp.seq)) return(NULL)
       
@@ -287,12 +317,19 @@ function(input, output, session) {
     }
   }) %>% bindEvent(input$apply_model_updates) # Only update when "apply" is clicked
   
+  # Initialize model input list
+  model.inputs <- list()
+  
   observeEvent(model.vars(), {
     if (!is.null(model.vars())) {
+      # Reset model input list
+      model.inputs <<- list()
+      
       # This observer will run when `model.vars` gets updated and is not NULL
       .inputs <- model.vars()$model.variables
       
       # Define training cv control
+      control.class.probs <- trainControl(method="cv", number=.inputs$k.folds, classProbs = T)
       control <- trainControl(method="cv", number=.inputs$k.folds)
       
       # Create model training grids
@@ -306,7 +343,8 @@ function(input, output, session) {
       )
       
       # Tree Grid
-      ct.grid <- data.frame(cp=clean.inputs(.inputs$cp))
+      cp.seq <- clean.inputs(.inputs$cp)
+      ct.grid <- data.frame(cp=cp.seq)
       
       # Random Forest Grid
       split.rule <- clean.inputs(.inputs$split.rule)
@@ -318,6 +356,22 @@ function(input, output, session) {
         min.node.size=min.node
       )
       
+      # Save model inputs to variable one env level up
+      model.inputs <<- list(
+        control=control,
+        control.w.probs=control.class.probs,
+        k.fold=.inputs$k.fold,
+        p=.inputs$p,
+        alpha=alpha,
+        lambda=lambda,
+        glm.grid=glm.grid,
+        cp=cp.seq,
+        ct.grid=ct.grid,
+        split.rule=split.rule,
+        mtry=mtry,
+        min.node=min.node,
+        rf.grid=rf.grid
+      )
       
       showModal(
         ui=modalDialog(
@@ -338,7 +392,8 @@ function(input, output, session) {
               tags$p(tags$b("Custom Model #3:"), style="margin: 0;")
             ),
             div( # Second column for non-bolded content
-              style="display: flex; flex-direction: column; align-items: flex-start; margin-left: 10px;", 
+              style="display: flex; flex-direction: column; align-items: 
+                     flex-start; margin-left: 10px;", 
               tags$p(paste0(.inputs$p * 100, "%"), style="margin: 0;"),
               tags$p(.inputs$k.folds, style="margin: 0;"),
               tags$p("Inhomogenous Poisson Process (IPP) Model", style="margin: 0;"),
@@ -428,14 +483,262 @@ function(input, output, session) {
         )
       )
     }
+  }) 
+  
+  # Initialize model output list
+  model.outputs <- list()
+  observeEvent(input$confirm_model_inputs, {
+    
+    removeModal()
+    js$loadingPanel()
+    
+    # Reset model outputs
+    model.outputs <<- list()
+    
+    # Incorporate the progress bar using withProgress
+    withProgress(message = "Training models", value = 0, {
+      # Increment the progress by 1/5 (0.2) after training each model since there are 5 models.
+      
+      # IPP Model Training
+      ipp.fname <- paste0("ipp_p_", model.inputs$p, ".rds")
+      ipp.fname <- file.path(tempdir(), ipp.fname)
+      ipp.model.output <- tryCatch(
+        {train.model(
+          df=model.vars()$train.test.data$presence.train,
+          rasters=rasters,
+          full.df=df,
+          model.type="ipp",
+          file.loc=ipp.fname
+        )},
+        error = function(e) {
+          showNotification(paste0("IPP Model Fit Error: ", e$message), type = "error")
+          return(NULL)
+        })
+      incProgress(0.2, detail = "Finished training IPP model. Starting MaxEnt...")
+      
+      # MaxEnt Model Training
+      maxent.fname <- paste0("maxent_p_", model.inputs$p, ".rds")
+      maxent.fname <- file.path(tempdir(), maxent.fname)
+      maxent.model.output <- tryCatch(
+        {train.model(
+          df=model.vars()$train.test.data$train,
+          model.type="maxent",
+          file.loc=maxent.fname
+        )},
+        error = function(e) {
+          showNotification(paste0("MaxEnt Model Fit Error: ", e$message), type = "error")
+          return(NULL)
+        }) 
+      incProgress(0.2, detail = "Finished training MaxEnt model. Starting GLM model..")
+      
+      # Logistic Regression Model Training
+      glm.fname <- paste0("glm_p", model.inputs$p, "_kfold_", 
+                          model.inputs$k.fold, "_alpha_", 
+                          paste0(model.inputs$alpha, collapse=""), "_lambda_", 
+                          paste0(model.inputs$lambda, collapse=""), ".rds")
+      glm.fname <- file.path(tempdir(), glm.fname)
+      glm.model.output <- tryCatch(
+        {train.model(
+          df=model.vars()$train.test.data$train.dummies,
+          train.control=model.inputs$control,
+          train.grid=model.inputs$glm.grid,
+          model.type="glm",
+          file.loc=glm.fname
+        )},
+        error = function(e) {
+          showNotification(paste0("GLM Model Fit Error: ", e$message), type = "error")
+          return(NULL)
+        })
+      incProgress(
+        0.2, 
+        detail = "Finished training GLM (Logistic Regression) model. Starting tree model...")
+      
+      # Classification Tree Model Training
+      ct.fname <- paste0("ct_p", model.inputs$p, "_kfold_", 
+                         model.inputs$k.fold, "_cp_", 
+                         paste0(model.inputs$cp, collapse=""), ".rds")
+      ct.fname <- file.path(tempdir(), ct.fname)
+      ct.model.output <- tryCatch(
+        {train.model(
+          df=model.vars()$train.test.data$train.dummies,
+          train.control=model.inputs$control,
+          train.grid=model.inputs$ct.grid,
+          model.type="tree",
+          file.loc=ct.fname
+        )},
+        error = function(e) {
+          showNotification(paste0("Tree Model Fit Error: ", e$message), type = "error")
+          return(NULL)
+        })
+      incProgress(0.2, detail = "Finished training tree model. Starting Random forest...")
+      
+      # Random Forest Model Training
+      rf.fname <- paste0("rf_p", model.inputs$p, "_kfold_", 
+                         model.inputs$k.fold, "_mtry_", 
+                         paste0(model.inputs$mtry, collapse=""), 
+                         "_splitrule_", paste0(model.inputs$split.rule, collapse=""), 
+                         "_minnode_", paste0(model.inputs$min.node, collapse=""), ".rds")
+      rf.fname <- file.path(tempdir(), rf.fname)
+      rf.model.output <- tryCatch(
+        {train.model(
+          df=model.vars()$train.test.data$train.dummies,
+          train.control=model.inputs$control.w.probs,
+          train.grid=model.inputs$rf.grid,
+          model.type="rf",
+          file.loc=rf.fname
+        )},
+        error = function(e) {
+          showNotification(paste0("Random Forest Model Fit Error: ", e$message), type = "error")
+          return(NULL)
+        })
+      incProgress(0.2, detail = "Finished training the Random Forest model. Training Complete.")
+    })
+   js$finishedLoadingPanel()
+    
+    # Save model outputs to variable one level up
+    model.outputs <<- list(
+      ipp=ipp.model.output$fit,
+      maxent=maxent.model.output$fit,
+      glm=glm.model.output$fit,
+      ct=ct.model.output$fit,
+      rf=rf.model.output$fit
+    )
   })
   
-  observeEvent(input$confirm_model_inputs, {
-    removeModal()
-    showNotification(HTML("<b>Modeling Stuff...</b>"))
-  })
   observeEvent(input$cancel_model_inputs, {removeModal()})
   
+  
+  ### Prediction & Evaluation #######################################
+  
+  # Initialize a list to hold the binned rasters
+  raster.img.names <- names(rasters)[!(names(rasters) %in% c("lat", "lon"))]
+  raster.imgs <- map(raster.img.names, ~as.im(rasters[[.x]]))
+  names(raster.imgs) <- raster.img.names
+  
+  observeEvent(c(input$modelTabs, input$predictionCutoff), {
+    if (input$modelTabs == "Prediction & Model Evaluation") {
+      # TODO: Make sure all models have been trained
+      
+      # Predictions 
+      
+      # IPP 
+      # Use predict.ppm to generate predicted intensities across rasters
+      predicted.intensities <- predict.ppm(model.outputs$ipp, covariates=raster.imgs)
+      
+      intensity.values <- as.matrix(predicted.intensities) %>% 
+        reduce(c) %>% 
+        keep(~!is.na(.x))
+      
+      # Convert the im object to a raster
+      predicted.raster <- raster(predicted.intensities)
+      
+      # If there is an intensity (count) of at least one, then predict it as a probability of 1
+      # Calculate the probability of finding at least one sloth at a location as 
+      # 1 - exp(-λ), where λ is the predicted intensity. This calculation is based 
+      # on the cumulative distribution function of the Poisson distribution.
+      prob.at.least.1 <- calc(predicted.raster, function(x) {1 - exp(-x)})
+      crs(prob.at.least.1) <- crs(rasters[[1]])
+      
+      # Extract the predicted probabilities for the test points
+      ipp.yhat <- raster::extract(prob.at.least.1, 
+                                  model.vars()$train.test.data$test[, c("lon", "lat")])
+      
+      ipp.cm <- confusionMatrix(
+        factor(ifelse(ipp.yhat >= input$predictionCutoff, 1, 0), levels=c(0, 1)), 
+        factor(model.vars()$train.test.data$test$presence, levels=c(0, 1)),
+        mode="everything",
+        positive="1")
+      
+      # MaxEnt
+      # Make predictions on full raster
+      maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters)
+      crs(maxent.raster) <- crs(rasters[[1]])
+      
+      # Make predictions on the test data
+      test.x <- model.vars()$train.test.data$test %>% 
+        dplyr::select(-c("presence"))
+      test.y <- model.vars()$train.test.data$test$presence
+      maxent.yhat <- predict(model.outputs$maxent, x=test.x)
+      
+      # Create a confusion matrix for the maxent model
+      maxent.cm <- confusionMatrix(
+        factor(ifelse(maxent.yhat >= input$predictionCutoff, 1, 0), levels=c(0, 1)), 
+        factor(test.y, levels=c(0, 1)),
+        mode="everything",
+        positive = "1")
+      
+      # Make predictions on full raster
+      maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters)
+      crs(maxent.raster) <- crs(rasters[[1]])
+      
+      # GLM
+      # Generate predictions on rasters (to plot probabilities)
+      glm.raster <- 1 - raster::predict(object=binary.rasters, model=model.outputs$glm, type="prob")
+      
+      # Generate predictions test set
+      glm.yhat <- predict(model.outputs$glm, 
+                          newdata = model.vars()$train.test.data$test.dummies)
+      
+      # Compute metrics using confusion matrix
+      glm.cm <- confusionMatrix(
+        glm.yhat, model.vars()$train.test.data$test.dummies$presence, 
+        positive="1",
+        mode="everything")
+      
+      # Classification Tree
+      # Generate predictions on rasters (to plot probabilities)
+      ct.raster <- raster::predict(object=binary.rasters, model=model.outputs$ct, type="prob")
+      
+      # Generate predictions test set
+      ct.yhat <- predict(model.outputs$ct, 
+                         newdata = model.vars()$train.test.data$test.dummies)
+      
+      # Compute metrics using confusion matrix
+      ct.cm <- confusionMatrix(
+        ct.yhat, model.vars()$train.test.data$test.factor$presence, 
+        positive="1",
+        mode="everything")
+      
+      # Random Forest
+      # Generate predictions on rasters (to plot probabilities)
+      
+      rf.raster <- 1 - raster::predict(
+        object=binary.rasters, 
+        model=model.outputs$rf,
+        type="prob")
+      
+      # Generate predictions test set
+      rf.yhat <- predict(model.outputs$rf, 
+                         newdata = model.vars()$train.test.data$test.dummies)
+      
+      # Compute metrics using confusion matrix
+      y <- factor(
+        ifelse(model.vars()$train.test.data$test.factor$presence == "1", 
+               "presence", "no.presence"), levels=c("no.presence", "presence"))
+      rf.cm <- confusionMatrix(
+        rf.yhat, y, 
+        positive="presence",
+        mode="everything")
+      
+      # Evaluation
+      print(ipp.cm)
+      print(maxent.cm)
+      print(glm.cm)
+      print(ct.cm)
+      print(rf.cm)
+      
+      # IPP 
+      
+      # MaxEnt
+      
+      # GLM
+      
+      # Classification Tree
+      
+      # Random Forest
+      
+    }
+  })
   
 }
 

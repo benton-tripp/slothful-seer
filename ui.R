@@ -455,6 +455,10 @@ model.page <- conditionalPanel(
         ),
         tabPanel(
           "Model Fitting",
+          div(class="spinner-placeholder", 
+              style='display:none; margin-top:40%; position:relative;',
+              HTML('<div></div> <div></div> <div></div> <div></div>')
+          ),
           # Train/Test Split
           div(
             id="modelFittingSection",
@@ -642,7 +646,7 @@ model.page <- conditionalPanel(
                         div(style="width:60px; text-align:right;  margin:2px;", 
                             span(style="color:red", "* required")),
                         div(style="width:150px; margin:2px;",
-                            numericInput("mtry_1", label=NULL, value=1, min=1, max=12, step=1)),
+                            numericInput("mtry_1", label=NULL, value=1, min=1, max=11, step=1)),
                         div(style="width:150px;  margin:2px;",
                             numericInput("min_node_1", label=NULL, value=1, min=1, max=10, step=1))
                       ),
@@ -651,7 +655,7 @@ model.page <- conditionalPanel(
                         div(style="width:60px; text-align:right;  margin:2px;", 
                             tags$i("optional")),
                         div(style="width:150px;  margin:2px;",
-                            numericInput("mtry_2", label=NULL, value=NULL, min=1, max=12, step=1)),
+                            numericInput("mtry_2", label=NULL, value=NULL, min=1, max=11, step=1)),
                         div(style="width:150px;  margin:2px;",
                             numericInput("min_node_2", label=NULL, value=NULL, min=1, max=10, step=1))
                       ),
@@ -660,7 +664,7 @@ model.page <- conditionalPanel(
                         div(style="width:60px; text-align:right;  margin:2px;", 
                             tags$i("optional")),
                         div(style="width:150px;  margin:2px;",
-                            numericInput("mtry_3", label=NULL, value=NULL, min=1, max=12, step=1)),
+                            numericInput("mtry_3", label=NULL, value=NULL, min=1, max=11, step=1)),
                         div(style="width:150px;  margin:2px;",
                             numericInput("min_node_3", label=NULL, value=NULL, min=1, max=10, step=1))
                       )
@@ -688,11 +692,21 @@ model.page <- conditionalPanel(
           )
         ),
         tabPanel(
-          "Prediction",
+          "Prediction & Model Evaluation",
           # Select Cutoff (default to 0.5)
-        ),
-        tabPanel(
-          "Model Evaluation and Comparison"
+          div(
+            class="shiny-row",
+            style="padding:10px",
+            # Prediction
+            div(
+              selectInput("predictionCutoff", "Select Cutoff", choices=seq(0.1, 0.9, by=0.1),
+                          selected=0.5)
+            ),
+            # Comparison/Evaluation
+            div(
+              
+            )
+          )
         )
       )
     )
@@ -714,12 +728,14 @@ main.body <- dashboardBody(
 
 ui <- div(
   id="uiBackground",
+  class=".load_wrapper",
   tags$head(
     useShinyjs(),  
-    tags$title("Slothful Seer"), #🦥
+    extendShinyjs(text=readr::read_file('www/scripts.js'),
+                  functions = c("loadingPanel", "finishedLoadingPanel")),
+    tags$title("Slothful Seer"),
     tags$link(rel="shortcut icon", href="favicon.ico"),
     tags$head(tags$script(src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML")),
-    
   ),
   div(
     id="headerSection",
