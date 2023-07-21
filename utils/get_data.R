@@ -181,7 +181,7 @@ if (.file.check$pseudo.absence) {
 }
 
 # Crop rasters to extent of presence points (plus small buffer)
-buffered.extent <- extent(sp.presence) + c(-0.125, 0.125, -0.125, 0.125)
+buffered.extent <- extent(sp.presence) + c(-1, 1, -1, 1)
 rasters <- raster::crop(rasters, buffered.extent)
 binary.rasters <- raster::crop(binary.rasters, buffered.extent)
 

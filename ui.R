@@ -159,7 +159,8 @@ eda.page <- conditionalPanel(
           "Maps",
           div(
             id="edaMapSection",
-            radioButtons("map_type", label="Select Map", choices=c("Interactive Map of Points", "Rasters"), 
+            radioButtons("map_type", label="Select Map", 
+                         choices=c("Interactive Map of Points", "Rasters"), 
                          inline=T, selected="Interactive Map of Points"),
             conditionalPanel(
               "input.map_type == 'Rasters'",
@@ -673,7 +674,6 @@ model.page <- conditionalPanel(
                 )
               )
             ),
-            hr(),
             div(
               class="shiny-row",
               div(
@@ -693,18 +693,55 @@ model.page <- conditionalPanel(
         ),
         tabPanel(
           "Prediction & Model Evaluation",
-          # Select Cutoff (default to 0.5)
           div(
             class="shiny-row",
             style="padding:10px",
-            # Prediction
             div(
-              selectInput("predictionCutoff", "Select Cutoff", choices=seq(0.1, 0.9, by=0.1),
-                          selected=0.5)
+              radioButtons("viz_preds", label="Select View", 
+                           choices=c("Model Metrics", "Estimated Probability Raster", 
+                                     "Predicted vs. Actual Map", "Probability Density Plot", 
+                                     "Bar Plot", "Confusion Matrix"), selected="Model Metrics", 
+                           inline=F),
+              conditionalPanel(
+                condition="input.viz_preds != 'Estimated Probability Raster' && 
+                         input.viz_preds != 'Probability Density Plot'",
+                div(
+                  style="max-width:170px;",
+                  # Select Cutoff (default to 0.5)
+                  selectInput("predictionCutoff", "Select Cutoff", 
+                              choices=seq(0.1, 0.9, by=0.1),
+                              selected=0.5)
+                )
+              )
             ),
-            # Comparison/Evaluation
             div(
-              
+              id="modelOutputs",
+              style="padding-right:5px;",
+              conditionalPanel(
+                condition="input.viz_preds == 'Model Metrics'",
+                style="max-width:600px;",
+                DTOutput("metric_table")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Estimated Probability Raster'",
+                plotOutput("raster_estimate")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Predicted vs. Actual Map'",
+                plotOutput("pred_map")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Probability Density Plot'",
+                plotOutput("prob_density")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Bar Plot'",
+                plotOutput("pred_bar")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Confusion Matrix'",
+                uiOutput("confusion_matrix")
+              )
             )
           )
         )

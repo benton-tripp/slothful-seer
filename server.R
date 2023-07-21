@@ -75,7 +75,8 @@ function(input, output, session) {
           colors <- c("0" = "black", "1" = "red")
           plot(rasters[[map.input]])
           if (input$map_absence == "Both") {
-            points(df$lon, df$lat, col = colors[factor(df$presence, levels=c(0, 1))], pch = 20, cex = 0.4) 
+            points(df$lon, df$lat, col = colors[factor(df$presence, levels=c(0, 1))],
+                   pch = 20, cex = 0.4) 
           } else if (input$map_absence == "Presence") {
             points(presence.df$lon, presence.df$lat, col = "red", pch = 20, cex = 0.4) 
           } else if (input$map_absence == "Absence") {
@@ -378,7 +379,6 @@ function(input, output, session) {
           id="modelModel",
           title="Confirm Model Parameters",
           size="l",
-          h2("Details"),
           div(
             style="font-size:15px; display: flex; align-items: start;", 
             div( # First column for bolded content
@@ -405,23 +405,22 @@ function(input, output, session) {
               tags$p("Classification Tree Model", style="margin: 0;"),
               tags$p("Random Forest Model", style="margin: 0;")
             )
-          )
-          
-          ,
-          h3("Training Grids"),
+          ),
+          h4("Training Grids"),
+          hr(style="margin:0; padding:0;"),
           div(
             id="modelModalContent",
             class="shiny-row",
             div(
               class="custom-border",
-              style="margin:10px;",
-              h4("GLM"),
+              style="margin:8px;",
+              h5(tags$b("GLM")),
               renderDT(datatable(glm.grid,
                                  filter='none',
                                  selection='none',
                                  rownames=F,
                                  options=list(
-                                   scrollY="210px",
+                                   scrollY="170px",
                                    paging=F,
                                    searching=F,
                                    orderMulti=T,
@@ -434,14 +433,14 @@ function(input, output, session) {
             ),
             div(
               class="custom-border",
-              style="margin:10px;",
-              h4("Classification Tree"),
+              style="margin:8px;",
+              h5(tags$b("Classification Tree")),
               renderDT(datatable(ct.grid,
                                  filter='none',
                                  selection='none',
                                  rownames=F,
                                  options=list(
-                                   scrollY="210px",
+                                   scrollY="170px",
                                    paging=F,
                                    searching=F,
                                    orderMulti=T,
@@ -454,14 +453,14 @@ function(input, output, session) {
             ),
             div(
               class="custom-border",
-              style="margin:10px;",
-              h4("Random Forest"),
+              style="margin:8px;",
+              h5(tags$b("Random Forest")),
               renderDT(datatable(rf.grid,
                                  filter='none',
                                  selection='none',
                                  rownames=F,
                                  options=list(
-                                   scrollY="210px",
+                                   scrollY="170px",
                                    paging=F,
                                    searching=F,
                                    orderMulti=T,
@@ -615,8 +614,14 @@ function(input, output, session) {
   raster.imgs <- map(raster.img.names, ~as.im(rasters[[.x]]))
   names(raster.imgs) <- raster.img.names
   
+  # Initialize prediction list
+  pred.lis <- list()
+  
   observeEvent(c(input$modelTabs, input$predictionCutoff), {
     if (input$modelTabs == "Prediction & Model Evaluation") {
+      # Reset prediction list
+      pred.lis <<- list()
+      
       # Make sure all models have been trained
       if (is.empty(model.outputs) | any(is.null(model.outputs))) {
           showModal(
@@ -644,124 +649,106 @@ function(input, output, session) {
         # Incorporate the progress bar using withProgress
         withProgress(message = "Predicting/Evaluating Models", value = 0, {
           # IPP 
-          # Use predict.ppm to generate predicted intensities across rasters
-          predicted.intensities <- predict.ppm(model.outputs$ipp, covariates=raster.imgs)
-          
-          intensity.values <- as.matrix(predicted.intensities) %>% 
-            reduce(c) %>% 
-            keep(~!is.na(.x))
-          
-          # Convert the im object to a raster
-          predicted.raster <- raster(predicted.intensities)
-          
-          # If there is an intensity (count) of at least one, then predict it as a probability of 1
-          # Calculate the probability of finding at least one sloth at a location as 
-          # 1 - exp(-λ), where λ is the predicted intensity. This calculation is based 
-          # on the cumulative distribution function of the Poisson distribution.
-          prob.at.least.1 <- calc(predicted.raster, function(x) {1 - exp(-x)})
-          crs(prob.at.least.1) <- crs(rasters[[1]])
-          
-          # Extract the predicted probabilities for the test points
-          ipp.yhat <- raster::extract(prob.at.least.1, 
-                                      model.vars()$train.test.data$test[, c("lon", "lat")])
-          
-          ipp.cm <- confusionMatrix(
-            factor(ifelse(ipp.yhat >= input$predictionCutoff, 1, 0), levels=c(0, 1)), 
-            factor(model.vars()$train.test.data$test$presence, levels=c(0, 1)),
-            mode="everything",
-            positive="1")
+          ipp <- predict.ipp(model.outputs, raster.imgs, rasters, 
+                             model.vars(), input$predictionCutoff)
           
           incProgress(0.2, detail = "Finished predicting/evaluating the IPP model.")
           cat("Finished predicting/evaluating the IPP model\n")
           
           # MaxEnt
-          # Make predictions on full raster
-          maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters)
-          crs(maxent.raster) <- crs(rasters[[1]])
-          
-          # Make predictions on the test data
-          test.x <- model.vars()$train.test.data$test %>% 
-            dplyr::select(-c("presence"))
-          test.y <- model.vars()$train.test.data$test$presence
-          maxent.yhat <- predict(model.outputs$maxent, x=test.x)
-          
-          # Create a confusion matrix for the maxent model
-          maxent.cm <- confusionMatrix(
-            factor(ifelse(maxent.yhat >= input$predictionCutoff, 1, 0), levels=c(0, 1)), 
-            factor(test.y, levels=c(0, 1)),
-            mode="everything",
-            positive = "1")
-          
-          # Make predictions on full raster
-          maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters)
-          crs(maxent.raster) <- crs(rasters[[1]])
+          maxent <- predict.evaluate.maxent(model.outputs, rasters, 
+                                            model.vars(), input$predictionCutoff)
           
           incProgress(0.2, detail = "Finished predicting/evaluating the MaxEnt model.")
           cat("Finished predicting/evaluating the MaxEnt model\n")
           
           # GLM
-          # Generate predictions on rasters (to plot probabilities)
-          glm.raster <- 1 - raster::predict(object=binary.rasters, 
-                                            model=model.outputs$glm, type="prob")
-          
-          # Generate predictions test set
-          glm.yhat <- predict(model.outputs$glm, 
-                              newdata = model.vars()$train.test.data$test.dummies)
-          
-          # Compute metrics using confusion matrix
-          glm.cm <- confusionMatrix(
-            glm.yhat, model.vars()$train.test.data$test.dummies$presence, 
-            positive="presence",
-            mode="everything")
+          glm <- predict.evaluate.glm(model.outputs, binary.rasters,
+                                      model.vars(), input$predictionCutoff)
           
           incProgress(0.2, detail = "Finished predicting/evaluating the GLM model.")
           cat("Finished predicting/evaluating the GLM model\n")
           
           # Classification Tree
           # Generate predictions on rasters (to plot probabilities)
-          ct.raster <- raster::predict(object=rasters, model=model.outputs$ct, type="prob",
-                                       factors=list(biome=levels(df$biome)))
-          
-          # Generate predictions test set
-          ct.yhat <- predict(model.outputs$ct, 
-                             newdata = model.vars()$train.test.data$test.factor)
-          
-          # Compute metrics using confusion matrix
-          ct.cm <- confusionMatrix(
-            ct.yhat, model.vars()$train.test.data$test.factor$presence, 
-            positive="presence",
-            mode="everything")
+          tree <- predict.evaluate.tree(model.outputs, rasters, 
+                                        model.vars(), input$predictionCutoff)
           
           incProgress(0.2, detail = "Finished predicting/evaluating the tree model.")
           cat("Finished predicting/evaluating the tree model\n")
           
           # Random Forest
-          # Generate predictions on rasters (to plot probabilities)
-          
-          rf.raster <- 1 - raster::predict(
-            object=rasters, 
-            model=model.outputs$rf,
-            type="prob",
-            factors=list(biome=levels(df$biome)))
-          
-          # Generate predictions test set
-          rf.yhat <- predict(model.outputs$rf, 
-                             newdata = model.vars()$train.test.data$test.factor)
-          
-          # Compute metrics using confusion matrix
-          rf.cm <- confusionMatrix(
-            rf.yhat, model.vars()$train.test.data$test.factor$presence , 
-            positive="presence",
-            mode="everything")
+          rf <- predict.evaluate.rf(model.outputs, rasters, 
+                                    model.vars(), input$predictionCutoff)
           
           incProgress(0.2, detail = "Finished predicting/evaluating the random forest model.")
           cat("Finished predicting/evaluating the random forest model\n")
           
         })
-        js$finishedLoadingPanel()
+        runjs("Shiny.setInputValue('render_model_results', Math.random());")
+        
+        # Save to list
+        pred.lis <<- list(ipp=ipp, maxent=maxent, glm=glm, tree=tree, rf=rf)
       }
     }
   })
   
+  observeEvent(c(input$render_model_results, input$predictionCutoff), {
+    if(!is.empty(pred.lis) & input$modelTabs == "Prediction & Model Evaluation") {
+      # Update visualizations on Prediction/Evaluation page
+
+      model.names <- c("IPP", "MaxEnt", "GLM", "Tree", "Random Forest")
+      
+      model.metrics <- purrr::map2(.x=pred.lis, .y=model.names, function(.x, .y) {
+        out <- .x$cm$byClass %>% 
+          as.data.frame() %>% 
+          rownames_to_column("Metric") 
+        names(out) <- c("Metric", .y)
+        out
+      }) %>% Reduce(function(df1, df2) left_join(df1, df2, by="Metric"), .)
+      
+      output$metric_table <- renderDT({
+        datatable(
+          model.metrics,
+          rownames=F,
+          selection='none',
+          options=list(
+            paging=F,
+            scrollX=T,
+            scrollY=F,
+            searching=F,
+            orderMulti=T,
+            info=F,
+            lengthChange=F,
+            pageLength=11
+          )
+        ) %>%
+          formatStyle(columns=names(model.metrics), `font-size`="17px") %>%
+          formatSignif(columns=2:6, digits=4)
+      })
+      
+      output$confusion_matrix <- renderUI({
+        # Confusion Matrices
+      })
+      
+      output$raster_estimate <- renderPlot({
+        plot.preds(pred.lis, "Estimated Probability Raster", model.names)
+      }, width=541, height=539)
+      
+      output$pred_map <- renderPlot({
+        plot.preds(pred.lis, "Predicted vs. Actual Map", model.names)
+      }, width=541, height=539)
+      
+      output$prob_density <- renderPlot({
+        plot.preds(pred.lis, "Probability Density Plot", model.names)
+      }, width=541, height=539)
+      
+      output$pred_bar <- renderPlot({
+        plot.preds(pred.lis, "Bar Plot", model.names)
+      }, width=541, height=539)
+    }
+    js$finishedLoadingPanel()
+  })
+
 }
 

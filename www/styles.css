@@ -151,6 +151,11 @@ a {
   margin-top: 0 !important;
 }
 
+#modelFittingParams {
+  border-bottom: 1px #acacac solid;
+  margin-bottom: 6px;
+}
+
 .MJXc-display {
   text-align: left !important;
 }
@@ -194,4 +199,12 @@ a {
   width: 100%;
   height: 100%;
   z-index: 990;
+}
+
+.modal-lg {
+  min-width: 660px !important;
+}
+
+#shiny-modal {
+  overflow-x: scroll !important;
 }
