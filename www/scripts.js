@@ -4,7 +4,7 @@ $(document).on('click', 'a[id^="m"]', function(evt) {
 });
 
 shinyjs.loadingPanel = function(){
-    $('.wrapper').append('<div class="greyed-out"></div>');
+    $('.wrapper').append('<div class="greyed-out></div>');
 };
 
 shinyjs.finishedLoadingPanel = function() {

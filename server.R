@@ -1,9 +1,14 @@
+# Options
+options("rgdal_show_exportToProj4_warnings"="none")
+
 # Load libraries
 purrr::walk(
-  c("shiny", "dismo", "sp", "maptools", "tidyverse", "ggpubr", "skimr", "knitr", "shinyjs",
-    "dismo", "leaflet", "leaflet.extras", "raster", "spatstat", "maxnet", "caret", "DT"), 
-  ~suppressWarnings(suppressPackageStartupMessages(library(.x, character.only=T)))
-)
+  c("shiny", "dismo", "sp", "maptools", "tidyverse", "ggpubr", "shinyjs", "skimr",
+    "leaflet", "leaflet.extras", "raster", "spatstat", "caret", "DT", "rJava"), 
+  function(.x) {
+    suppressWarnings(suppressPackageStartupMessages(library(.x, character.only=T)))
+    cat("Loaded the", .x, "library\n")
+})
 
 # Set seed for reproducibility
 set.seed(19)
@@ -13,7 +18,7 @@ set.seed(19)
 walk(.utils, ~source(.x)) %>% suppressWarnings()
 
 
-function(input, output, session) {
+server <- function(input, output, session) {
   
   ### Data Overview ###############################
   
@@ -644,7 +649,7 @@ function(input, output, session) {
         } else {
         
         # Predictions 
-        js$loadingPanel()
+          js$loadingPanel()
         
         # Incorporate the progress bar using withProgress
         withProgress(message = "Predicting/Evaluating Models", value = 0, {
@@ -733,22 +738,22 @@ function(input, output, session) {
       
       output$raster_estimate <- renderPlot({
         plot.preds(pred.lis, "Estimated Probability Raster", model.names)
-      }, width=541, height=539)
+      }, width=600, height=539)
       
       output$pred_map <- renderPlot({
         plot.preds(pred.lis, "Predicted vs. Actual Map", model.names)
-      }, width=541, height=539)
+      }, width=600, height=539)
       
       output$prob_density <- renderPlot({
         plot.preds(pred.lis, "Probability Density Plot", model.names)
-      }, width=541, height=539)
+      }, width=600, height=539)
       
       output$pred_bar <- renderPlot({
         plot.preds(pred.lis, "Bar Plot", model.names)
-      }, width=541, height=539)
+      }, width=600, height=539)
     }
     js$finishedLoadingPanel()
   })
-
+  js$finishedLoadingPanel()
 }
 

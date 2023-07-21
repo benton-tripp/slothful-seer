@@ -118,15 +118,12 @@ predict.evaluate.glm <- function(model.outputs, binary.rasters, model.vars, cuto
 
 
 predict.evaluate.tree <- function(model.outputs, rasters, model.vars, cutoff) {
-  ## TODO:
   # Generate predictions on rasters (to plot probabilities)
-  ct.raster <- raster::predict(
+  ct.raster <- 1 - raster::predict(
     object=rasters, model=model.outputs$ct, type="prob", 
     factors=list(biome=levels(model.vars$train.test.data$test.factor$biome)))
   
   # Get predictions
-  ct.yhat <- predict(model.outputs$ct, newdata = model.vars$train.test.data$test.factor)
-  
   # Generate predictions test set
   ct.probs <- predict(model.outputs$ct, 
                        newdata = model.vars$train.test.data$test.factor, 
