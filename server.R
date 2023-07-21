@@ -649,7 +649,7 @@ server <- function(input, output, session) {
         } else {
         
         # Predictions 
-          js$loadingPanel()
+        js$loadingPanel()
         
         # Incorporate the progress bar using withProgress
         withProgress(message = "Predicting/Evaluating Models", value = 0, {
@@ -732,28 +732,41 @@ server <- function(input, output, session) {
           formatSignif(columns=2:6, digits=4)
       })
       
+      # Confusion Matrices
       output$confusion_matrix <- renderUI({
-        # Confusion Matrices
+        div(
+          div(renderDT(show.cms(pred.lis, model.names))),
+          # Legend
+          tags$div(
+            style="padding: 5px;",
+            tags$p(paste0("Green: Correct prediction. ",
+                          "Darker shade indicates higher recall (TP) or specificity (TN).")),
+            tags$p(paste0("Red: Incorrect prediction. ",
+                   "Darker shade indicates higher FP or FN rates."))
+        )
+      )
       })
       
       output$raster_estimate <- renderPlot({
         plot.preds(pred.lis, "Estimated Probability Raster", model.names)
-      }, width=600, height=539)
+      }, width=1000, height=500)
       
       output$pred_map <- renderPlot({
         plot.preds(pred.lis, "Predicted vs. Actual Map", model.names)
-      }, width=600, height=539)
+      }, width=1000, height=500)
       
       output$prob_density <- renderPlot({
         plot.preds(pred.lis, "Probability Density Plot", model.names)
-      }, width=600, height=539)
+      }, width=1000, height=500)
       
       output$pred_bar <- renderPlot({
         plot.preds(pred.lis, "Bar Plot", model.names)
-      }, width=600, height=539)
+      }, width=1000, height=500)
     }
     js$finishedLoadingPanel()
   })
-  js$finishedLoadingPanel()
+  
+  # After everything is loaded, send a message to hide the loading screen
+  session$sendCustomMessage(type = 'hideLoadingScreen', message = 'hide')
 }
 

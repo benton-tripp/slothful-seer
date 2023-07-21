@@ -13,7 +13,9 @@ predict.ipp <- function(model.outputs, raster.imgs, rasters, model.vars, cutoff)
   # If there is an intensity (count) of at least one, then predict it as a probability of 1
   # Calculate the probability of finding at least one sloth at a location as 
   # 1 - exp(-λ), where λ is the predicted intensity. This calculation is based 
-  # on the cumulative distribution function of the Poisson distribution.
+  # on the cumulative distribution function of the Poisson distribution. I.e.,
+  # the probability of observing zero events in a Poisson dist. is given by:
+  # P(X = 0) = exp(-λ), and so P(X≥1)=1−P(X=0)=1−exp(−λ)
   prob.at.least.1 <- calc(predicted.raster, function(x) {1 - exp(-x)})
   crs(prob.at.least.1) <- crs(rasters[[1]])
   

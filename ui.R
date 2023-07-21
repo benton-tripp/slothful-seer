@@ -695,12 +695,13 @@ model.page <- conditionalPanel(
           "Prediction & Model Evaluation",
           div(
             class="shiny-row",
-            style="padding:10px",
             div(
+              style="max-width:175px;",
               radioButtons("viz_preds", label="Select View", 
                            choices=c("Model Metrics", "Estimated Probability Raster", 
                                      "Predicted vs. Actual Map", "Probability Density Plot", 
-                                     "Bar Plot", "Confusion Matrix"), selected="Model Metrics", 
+                                     "Bar Plot", "Confusion Matrix"), 
+                           selected="Model Metrics", 
                            inline=F),
               conditionalPanel(
                 condition="input.viz_preds != 'Estimated Probability Raster' && 
@@ -716,7 +717,8 @@ model.page <- conditionalPanel(
             ),
             div(
               id="modelOutputs",
-              style="padding-right:5px;",
+              style="overflow-x:scroll; min-height:500px; margin:15px;
+                     border: 1px solid #888;",
               conditionalPanel(
                 condition="input.viz_preds == 'Model Metrics'",
                 style="max-width:600px;",

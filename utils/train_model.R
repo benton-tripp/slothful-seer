@@ -21,7 +21,7 @@ train.model <- function(
   
   # Logistic Regression
   if (model.type == "glm") {
-    fit <- train(presence ~ ., 
+    fit <- train(presence ~ .^2, # Include all interactions 
                  data = df, 
                  method = "glmnet", 
                  family = "binomial",
