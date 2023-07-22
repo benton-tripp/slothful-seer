@@ -232,7 +232,8 @@ eda.page <- conditionalPanel(
                 class="shiny-row",
                 selectInput("map_selection", label="Select Raster", selected="Mean Temperature", 
                             choices=c("Mean Temperature", "Annual Precipitation", 
-                                      "Precipitation - Wettest Qrtr.", "Precipitation - Driest Qrtr.",
+                                      "Precipitation - Wettest Qrtr.", 
+                                      "Precipitation - Driest Qrtr.",
                                       "Max Temperature", "Min Temperature",
                                       "Temperature Range", "Mean Temperature - Wettest Qrtr.",
                                       "Biomes", "Longitude", "Latitude")),
@@ -331,6 +332,7 @@ model.page <- conditionalPanel(
           "Model Info",
           div(
             class="shiny-row",
+            style="padding-right:20px;",
             div(
               id="modelingInfoSidebar",
               tags$ul(
@@ -345,7 +347,7 @@ model.page <- conditionalPanel(
                 tags$li(
                   tags$a(
                     id="mdlTTOverviewSelect",
-                    tags$i(icon("shuffle"), style="margin-right:10px"),
+                    tags$i(icon("arrows-split-up-and-left"), style="margin-right:10px"),
                     span("Train/Test Splitting")
                   )
                 ),
@@ -370,23 +372,15 @@ model.page <- conditionalPanel(
                   tags$a(
                     id="mdlGLMOverviewSelect",
                     tags$i(icon("bar-chart"), style="margin-right:10px"),
-                    span("GLM")
+                    span("Generalized Linear Model")
                   )
                 ),
-                # Classification Tree
-                tags$li(
-                  tags$a(
-                    id="mdlCTOverviewSelect",
-                    tags$i(icon("arrows-split-up-and-left"), style="margin-right:10px"),
-                    span("Classification Tree")
-                  )
-                ),
-                # Random Forest
+                # Classification Tree & Random Forest
                 tags$li(
                   tags$a(
                     id="mdlRFOverviewSelect",
                     tags$i(icon("tree"), style="margin-right:10px"),
-                    span("Random Forest")
+                    span("Classification Trees & Random Forests")
                   )
                 )
               )
@@ -504,16 +498,147 @@ model.page <- conditionalPanel(
                 )
               ),
               conditionalPanel(
-                condition="input.menuItemSelected == 'mdlCTOverviewSelect'",
-                div(
-                  h3("Classification Trees")
-                )
-              ),
-              conditionalPanel(
                 condition="input.menuItemSelected == 'mdlRFOverviewSelect'",
+                id="rfOverviewSection",
                 div(
-                  h3("Random Forests")
+                  h3("Classification Trees"),
+                  div( 
+                    p(
+                      "Classification trees are a type of decision tree algorithm that",
+                      "aims to classify instances into predefined classes. They work by",
+                      "recursively splitting the dataset based on the feature that provides",
+                      "the highest information gain, using measures like Gini impurity or",
+                      "deviance (cross-entropy)."
+                    ),
+                    div(
+                      h4("Gini Impurity"),
+                      p(
+                        "The Gini impurity is commonly used in decision trees for binary",
+                        "classification. It calculates the impurity (or disorder) of a set,",
+                        "where p is the probability of choosing an item from one class.",
+                        "The Gini impurity is 0 when all items belong to a single class,",
+                        "and it is maximized when the items are evenly distributed across",
+                        "different classes."
+                      ),
+                      tags$span(class="math inline", 
+                                HTML("\\( Gini = 2p(1-p) \\)"))
+                    ),
+                    br(),
+                    div(
+                      h4("Information Gain"),
+                      p(
+                        "Information gain is a measure used in decision trees to determine which",
+                        "feature to split on. It represents the difference between the impurity of",
+                        "the original set and the weighted impurity of the two child sets after",
+                        "the split. The greater the information gain, the more effective the split.",
+                        "For binary classification, information gain can be calculated using the",
+                        "Gini impurity measure:"
+                      ),
+                      tags$div(
+                        tags$span(
+                          class="math inline", 
+                          HTML("\\( IG_{Gini}(D, A) = Gini(D) - \\left( \\frac{|D_1|}{|D|} ",
+                               "\\cdot Gini(D_1) + \\frac{|D_2|}{|D|} \\cdot Gini(D_2) \\right) \\)")),
+                        tags$br(),
+                        "Given:",
+                        tags$ul(
+                          tags$li(
+                            HTML("\\( Gini(D) \\) is the Gini impurity of the dataset \\( D \\) ",
+                                 "before the split.")),
+                          tags$li(HTML("\\( Gini(D_1) \\) and \\( Gini(D_2) \\) are the Gini ",
+                                       "impurities of the two subsets after the split.")),
+                          tags$li(HTML("\\( |D_1| \\) and \\( |D_2| \\) are the sizes of the ",
+                                       "two subsets after the split.")),
+                          tags$li(HTML("\\( |D| \\) is the size of the dataset \\( D \\) ",
+                                       "before the split."))
+                        )
+                      )
+                    ),
+                    br(),
+                    div(
+                      h4("Model Tuning"),
+                      p(
+                        "Only one parameter is defined by the user in this application when ",
+                        "tuning a classification tree. The complexity parameter (", tags$code("cp"), 
+                        ") is used to control the size of the decision tree and prevent overfitting.", 
+                        " It specifies a threshold below which a node split is considered too small. ",
+                        "If the difference in the impurity measure (e.g., Gini) of a split is below",
+                        "this threshold, the split is not made, resulting in a more generalized tree."
+                      )
+                    )
+                  ),
+                  div(
+                    h3("Random Forests"),
+                    div(
+                      p(
+                        "A random forest is an ensemble machine learning model that combines",
+                        "the predictions of several decision trees to improve predictive accuracy.",
+                        "Unlike boosting, the trees in a random forest are trained independently.",
+                        "Each tree is trained on a different bootstrap sample of the data (a sample",
+                        "drawn with replacement), and at each node, a random subset of features is",
+                        "considered for splitting. This randomness helps to make the model robust",
+                        "to overfitting and improves predictive accuracy by reducing the correlation",
+                        "between the trees."
+                      ),
+                      p(
+                        "Random forests are known for their robustness and versatility. They can",
+                        "handle both numerical and categorical data, they don’t require feature", 
+                        "scaling, and they can model complex non-linear relationships. However,",
+                        "they can be computationally intensive to train, and their predictions",
+                        "are not as interpretable as those of a single decision tree."
+                      ),
+                      br(),
+                      div(
+                        h4("Extremely Randomized Trees (ExtraTrees)"),
+                        p(
+                          "The “extratrees” rule introduces additional randomness into the",
+                          "tree-building process. Instead of computing the best split point",
+                          "for a feature, a random split point is chosen. This added randomness",
+                          "can sometimes result in better generalization to unseen data."
+                        )
+                      ),
+                      br(),
+                      div(
+                        h4("Out-of-Bag Error"),
+                        p(
+                          "One of the advantages of random forests is the ability to compute",
+                          "an out-of-bag (OOB) error estimate. This is the average error for",
+                          "each observation calculated using predictions from the trees that",
+                          "do not contain that observation in their bootstrap sample. It's an",
+                          "unbiased estimate of the test set error."
+                        ),
+                        tags$span(
+                          class="math inline", 
+                          HTML("\\( OOB = \\frac{1}{N} \\sum_{i=1}^{N} I(y_i \\neq \\hat{y}_i) \\)"))
+                      ),
+                      br(),
+                      h4("Model Tuning"),
+                      p(
+                        "For the tuning grid used in the model in the application, the",
+                        "following parameters are iteratively tested (as defined by the user):"
+                      ),
+                      tags$ul(
+                        tags$li(tags$code("mtry"), 
+                                "This is the number of variables randomly sampled as candidates",
+                                "at each split. Lower values can make the model more robust to",
+                                "overfitting by adding randomness."),
+                        tags$li(tags$code("splitrule"), 
+                                "This is the splitting rule or criterion. The “gini” rule is for",
+                                "classification tasks and uses the Gini impurity as the splitting", 
+                                "criterion. The “extratrees” rule implements the extremely",
+                                "randomized trees algorithm, which adds extra randomness to the", 
+                                "model."),
+                        tags$li(tags$code("min.node.size"), 
+                                "This is the minimum size of terminal nodes. Nodes with fewer",
+                                "observations than ", tags$code("min.node.size"), 
+                                "will not be split further.",
+                                "Larger values can help prevent overfitting by",
+                                "making the model more conservative.")
+                      )
+                    )
+                  )
                 )
+                
               )
             )
           )

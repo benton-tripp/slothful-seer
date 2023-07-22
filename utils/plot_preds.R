@@ -68,7 +68,8 @@ plot.preds <- function(pred.lis, plot.type, model.names) {
         ggtitle(paste0("Distribution of ", model.name, " Pred. Probability"))
       
     } else if (plot.type == "Bar Plot") {
-      
+      # TODO: FIX BAR PLOTS
+      browser()
       plt.data <- tidyr::pivot_longer(test.df, c("y", "yhat")) %>%
         mutate(`Predicted/Actual` = factor(ifelse(name == "y", "Actual", "Predicted"), 
                              levels=c("Actual", "Predicted")))

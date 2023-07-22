@@ -85,7 +85,8 @@ a {
   font-weight: normal !important;
 }
 
-#ippOverviewSection {
+#ippOverviewSection, #rfOverviewSection p, #rfOverviewSection span, 
+#rfOverviewSection code, #rfOverviewSection li {
   font-size: 16.5px !important;
 }
 
@@ -118,11 +119,11 @@ a {
 
 #modelingInfoSidebar {
   margin-top: 10px !important;
-  min-width: 300px !important;
+  min-width: 360px !important;
   background-color: #dddddd !important;
   padding-left:5px !important;
-  max-height: 190px !important;
-  min-height: 190px !important;
+  max-height: 160px !important;
+  min-height: 160px !important;
   margin-right:15px !important;
   border-radius: 5px !important; /* Slightly rounded corners */
   border: 1px solid #cccccc !important; /* Thin border slightly darker than the background */
