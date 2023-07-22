@@ -17,10 +17,12 @@ set.seed(19)
 .utils <- file.path("utils", list.files("utils"))
 walk(.utils, ~source(.x)) %>% suppressWarnings()
 
-
 server <- function(input, output, session) {
   
   ### Data Overview ###############################
+  
+  # Observation Area Map
+  output$region_map <- renderPlot({study.area.plt}, width=350, height=350)
   
   # Data
   observeEvent(c(input$sidebarMenu, input$select_data_filter), {
@@ -50,8 +52,17 @@ server <- function(input, output, session) {
         ) %>%
           formatStyle(columns=names(data.selection), `font-size`="18px")
       })
+      
+      #  Download data
+      output$downloadData <- downloadHandler(
+        filename = function() {
+          paste0("bradypus_presence_only.csv")
+        },
+        content = function(file) write.csv(data.selection, file, row.names = F),
+        contentType = 'text/csv')
     }
   })
+  
   
   ### Exploratory Analysis ########################
   

@@ -57,6 +57,7 @@ a {
 
 #overviewIntroSection, #dataOverviewSection {
   padding-left: 5% !important;
+  margin:10px;
 }
 
 #edaCatSection, #edaTargetSection, #dataOverviewSection {

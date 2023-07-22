@@ -29,39 +29,100 @@ overview.page <- conditionalPanel(
         tabPanel(
           "Introduction",
           div(
+            style="margin:10px;",
             id="overviewIntroSection",
-            HTML("<p>The purpose of this application is to model the species distribution of 
-                  the three-toed sloth using advanced analytical methods and spatial statistics. 
-                  This type of model is commonly used in the fields of biology and ecology, and is
-                  called <i>presence-only</i> modeling, (since the data only entails observations 
-                  of a species presence, and not the inverse). The contents of the app include:</p>"),
-            tags$ul(
-              tags$li("Basic exploratory analysis: In this part of the application, the user 
+            h3("Introduction and Purpose of this Application"),
+            div(
+              class="shiny-row",
+              div(
+                HTML(
+                  paste0(
+                    "<p>The purpose of this application is to model ", 
+                    "the species distribution of the three-toed sloth ", 
+                    "using data science methods and spatial statistics. ",
+                    "This type of model is commonly used in the fields of ", 
+                    "biology and ecology, and is called <i>presence-only", 
+                    "</i> modeling, (since the data only entails observations ",
+                    "of a species presence, and not the inverse). The contents ", 
+                    "of the app include:</p>")
+                ),
+                tags$ul(
+                  tags$li(paste0(
+                    "Data View: The user is able to explore the raw data in a",
+                    " tabular format. The interface allows for sorting, filtering,",
+                    " and downloading the data for external analyses.")
+                  ),
+                  tags$li("Basic exploratory analysis: In this part of the application, the user 
                        is able to gain a deeper understanding of the data itself, as well as the
                        distribution of the variables used within the modeling process."),
-              tags$li("Splitting the data: As with most supervised learning problems, the data is
-                       split into training/test sets in order to evaluate model performance on
-                       unseen data."),
-              tags$li("Baseline models: Inhomogeneous Poisson Process (IPP) model and Maximum 
-                       Entropy (MaxEnt) models serve as \"baseline\" models, given their frequent
-                       usage in presence-only prediction problems."),
-              tags$li("Machine learning models: Other models used less frequently in 
-                      presence-only prediction problems are used to model the data, including
-                      Generalized Linear Models (GLM), GLM with elastic net regularization, 
-                      K-Nearest Neighbors (KNN), Random Forest, and Bagged AdaBoost"),
-              tags$li("Model evaluation: Each of the models is compared and evaluated.")
+                  tags$li(paste0("Modeling the data: This part of the app includes several",
+                                " key components:"),
+                          tags$ul(
+                            tags$li(
+                              paste0(
+                                "Splitting the data: As with most supervised learning problems,",
+                                " the data is split into training/test sets in order to ",
+                                "evaluate model performance on unseen data.")
+                            ),
+                            tags$li(
+                              paste0(
+                                "Cross Validation and Model Training: the models are trained ",
+                                "using a grid of user-selected hyperparameters. Cross validation",
+                                " is used to iteratively test the different parameter ",
+                                "combinations as well as avoid overfitting the model. The",
+                                " best combination of parameters is selected as the final ",
+                                "model based on its performance."
+                              )
+                            ),
+                            tags$li(
+                              paste0(
+                                "Baseline models: Inhomogeneous Poisson Process (IPP) model ",
+                                "and Maximum Entropy (MaxEnt) models serve as \"baseline\" ",
+                                " models, given their frequent usage in presence-only ",
+                                "prediction problems.")
+                              ),
+                            tags$li(
+                              paste0(
+                                "Machine learning models: Other models used less frequently ",
+                                "in presence-only prediction problems are used to model the ",
+                                " data, including a generalized linear model with optional ",
+                                "regularization, tree-based classification, and random forest."
+                              )
+                            ),
+                            tags$li(
+                              paste0("Model evaluation: Each of the models is compared and",
+                                     "evaluated through various metrics and visualizations.")
+                              
+                            )
+                          )
+                  )
+                  )
+                ),
+                div(
+                style="display:flex; flex-direction:column;",
+                tags$img(src="images/sloth.jpg", alt="Sloth", style="width:300px; height:300px;"),
+                span(id="slothCaption", 
+                     tags$i(
+                       "Image obtained from ", 
+                       tags$a(href=paste0("https://res.cloudinary.com/dk-find-out/image/",
+                                          "upload/q_80,w_1920,f_auto/A-dreamstime_xxl_418", 
+                                          "01886_by73ed.jpg"), "Cloudinary")
+                     )
+                )
+              )
             )
           )
         ),
         tabPanel(
           "Data Overview",
           div(
+            h3("Data Overview"),
             id="dataOverviewSection",
-            HTML("<p>The <code>dismo</code> package provides certain built-in datasets that can be 
-                  used for demonstration purposes. <i>Note that the built-in datasets might have been
-                  scaled or modified. E.g., the temperature raster data used in this analysis 
-                  appears to have been scaled since the min/max values range from about 
-                 -200 to 400.</i></p>"),
+            HTML(paste0("<p>The <code>dismo</code> package provides certain built-in", 
+            " datasets that can be used for demonstration purposes. <i>Note that the ", 
+            "built-in datasets might have been scaled or modified. E.g., the temperature", 
+            " raster data used in this analysis appears to have been scaled since the", 
+            " min/max values range from about -200 to 400.</i></p>")),
             HTML("<p>The data from the <code>dismo</code> package used in this application 
                  includes:</p>"),
             div(
@@ -103,26 +164,29 @@ overview.page <- conditionalPanel(
                       HTML("<p>Precipitation of driest quarter (<i>bio17</i>)</p>")
                     ),
                     tags$li(
-                      HTML("<p>Terrestrial Ecosregions (Biomes) of the world,
-                         by the World Wildlife Fund (<i>biome</i>).See 
-                         <a href='https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world'>this publication</a> by the WWF for more details.</p>")
+                      HTML(paste0("<p>Terrestrial Eco-regions (Biomes) of the world,",
+                         " by the World Wildlife Fund (<i>biome</i>). See ",
+                         "<a href='https://www.worldwildlife.org/publications",
+                         "/terrestrial-ecoregions-of-the-world'>this publication</a>",
+                         " by the WWF for more details.</p>"))
                     )
                   )
                 )
               ),
               div(
-                tags$img(src="images/sloth.jpg", alt="Sloth", style="width:300px; height:300px;"),
-                span(id="slothCaption", 
-                     tags$i(
-                       "Image obtained from ", 
-                       tags$a(href="https://res.cloudinary.com/dk-find-out/image/upload/q_80,w_1920,f_auto/A-dreamstime_xxl_41801886_by73ed.jpg", "Cloudinary")
-                     )
-                )
+                style="margin:5px;",
+                plotOutput("region_map")
               )
             )
           )  
         ),
-        tabPanel("Presence-Only Prediction")
+        tabPanel(
+          "Presence-Only Prediction",
+          h3("Overview of Presence-Only Prediction"),
+          div(
+            
+          )
+        )
       )
     )
   )
@@ -138,7 +202,7 @@ data.page <- conditionalPanel(
                    choices=c("Presence", "Absence", "All"), selected="All"),
       div(
         style="margin-left:15px",
-        actionButton("export_data", 
+        downloadButton("downloadData", 
                      "Download Selection", 
                      icon=icon("download", lib="font-awesome"))
       )
