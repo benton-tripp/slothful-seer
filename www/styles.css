@@ -133,6 +133,14 @@ a {
   margin-left: 10px !important;
 }
 
+#slothImg {
+  float: right;
+  margin-top: 10px !important;
+  padding-left:15px !important;
+  margin-right:15px !important;
+  margin-bottom:5px !important;
+}
+
 #slothCaption, #slothCaption a {
   font-size:13px !important;
   max-width: 300px !important;
@@ -199,6 +207,14 @@ a {
 }
 
 @media (max-width: 765px) {
+  #slothImg img {
+    width: 168px !important;
+    height: 250px !important;
+  }
+  #slothCaption {
+    max-width: 168px !important;
+  }
+  
   #headerSection {
     margin-left:10px !important; 
   }
@@ -337,27 +353,3 @@ a {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-
-
-
-/* Adjust using js on toggle sidebar click 
-.main-header, .navbar {
-  margin-left: 0 !important;
-}
-*/
-
-/* NO LONGER IN USE
-
-.logo {
-  width: 0 !important;
-  padding: 0 !important;
-}
-
-.left-side, .main-sidebar {
-  padding-top: 0 !important;
-}
-
-.main-header {
-  position: static !important;
-}
-*/

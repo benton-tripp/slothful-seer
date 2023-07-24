@@ -21,9 +21,6 @@ server <- function(input, output, session) {
   
   ### Data Overview ###############################
   
-  # Observation Area Map
-  output$region_map <- renderPlot({study.area.plt}, width=350, height=350)
-  
   # Data
   observeEvent(c(input$sidebarMenu, input$select_data_filter), {
     if (input$sidebarMenu == "dataPanel") { 
@@ -62,7 +59,6 @@ server <- function(input, output, session) {
         contentType = 'text/csv')
     }
   })
-  
   
   ### Exploratory Analysis ########################
   

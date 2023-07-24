@@ -36,10 +36,13 @@ get.study.area <- function() {
     geom_sf(data = south.america.sf, fill = "lightgray") +
     geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), 
               color = "red", fill = NA, linewidth = 1) +
-    coord_sf() + 
-    labs(title="Study Area")
+    coord_sf()#  + 
+    # labs(title="Study Area")
 }
 
-# Load study area map
-study.area.plt <- get.study.area()
-
+# It's a lot faster to load from an image, so create one if you haven't already
+if (!file.exists("www/images/study_area.png")) {
+  # Load study area map
+  study.area.plt <- get.study.area()
+  ggplot2::ggsave("www/images/study_area.png", study.area.plt)
+}

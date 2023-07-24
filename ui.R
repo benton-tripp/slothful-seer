@@ -34,7 +34,21 @@ overview.page <- conditionalPanel(
             id="overviewIntroSection",
             h3("Introduction and Purpose of this Application"),
             div(
-              class="shiny-row",
+              div(
+                id="slothImg", 
+                div(
+                  style="display:flex; flex-direction:column;",
+                  tags$img(src="images/sloth-cropped.png", alt="Sloth", style="width:200px; height:300px;"),
+                  span(id="slothCaption", 
+                       tags$i(
+                         "Image obtained from ", 
+                         tags$a(href=paste0("https://res.cloudinary.com/dk-find-out/image/",
+                                            "upload/q_80,w_1920,f_auto/A-dreamstime_xxl_418", 
+                                            "01886_by73ed.jpg"), "Cloudinary")
+                       )
+                  )
+                )
+              ),
               div(
                 HTML(
                   paste0(
@@ -98,19 +112,7 @@ overview.page <- conditionalPanel(
                           )
                   )
                   )
-                ),
-                div(
-                style="display:flex; flex-direction:column;",
-                tags$img(src="images/sloth.jpg", alt="Sloth", style="width:300px; height:300px;"),
-                span(id="slothCaption", 
-                     tags$i(
-                       "Image obtained from ", 
-                       tags$a(href=paste0("https://res.cloudinary.com/dk-find-out/image/",
-                                          "upload/q_80,w_1920,f_auto/A-dreamstime_xxl_418", 
-                                          "01886_by73ed.jpg"), "Cloudinary")
-                     )
                 )
-              )
             )
           )
         ),
@@ -127,7 +129,6 @@ overview.page <- conditionalPanel(
             HTML("<p>The data from the <code>dismo</code> package used in this application 
                  includes:</p>"),
             div(
-              class="shiny-row",
               tags$ul(
                 tags$li(
                   HTML("<p>Bradypus (Three-Toed Sloth) observations in South America: This 
@@ -173,20 +174,17 @@ overview.page <- conditionalPanel(
                     )
                   )
                 )
-              ),
-              div(
-                style="margin:5px;",
-                plotOutput("region_map")
               )
-            )
+            ),
+            br(),
+            h3("Study Area"),
+            div(
+              id="regionMap",
+              style="margin:25px;",
+              tags$img(src="images/study_area.png", alt="Area Map", 
+                       style="width:600px; height:600px;"),
+            ),
           )  
-        ),
-        tabPanel(
-          "Presence-Only Prediction",
-          h3("Overview of Presence-Only Prediction"),
-          div(
-            
-          )
         )
       )
     )
