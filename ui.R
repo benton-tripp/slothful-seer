@@ -336,27 +336,19 @@ model.page <- conditionalPanel(
               conditionalPanel(
                 condition="input.menuItemSelected == 'mdlOverviewSelect'",
                 div(
-                  id="mainModelOverviewSection",
-                  modeling.info.sidebar,
-                  div(
-                    class="model-overview-page",
-                    h3("Model Info: Overview")
-                  )
-                )
-              ),
-              conditionalPanel(
-                condition="input.menuItemSelected == 'mdlTTOverviewSelect'",
-                div(
                   id="trainTestOverviewSection",
                   modeling.info.sidebar,
                   div( 
                     class="model-overview-page",
-                    h3("Splitting the Data into Train/Test Sets"),
-                    p(
-                      "The process of partitioning the dataset into training and testing subsets",
-                      "is a crucial step in model evaluation. A stratified sampling approach is",
-                      "employed to ensure that both subsets are representative of the overall data",
-                      "distribution, especially in terms of spatial and categorical variables."
+                    h3("Modeling Overview"),
+                    div(
+                      h4("Splitting the Data into Train/Test Sets"),
+                      p(
+                        "The process of partitioning the dataset into training and testing subsets",
+                        "is a crucial step in model evaluation. A stratified sampling approach is",
+                        "employed to ensure that both subsets are representative of the overall data",
+                        "distribution, especially in terms of spatial and categorical variables."
+                      )
                     ),
                     div(
                       h4("Spatial Stratification"),

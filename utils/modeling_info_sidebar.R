@@ -8,14 +8,14 @@ modeling.info.sidebar <- div(
         span("Modeling Overview")
       )
     ),
-    # Train/Test Split
-    tags$li(
-      tags$a(
-        id="mdlTTOverviewSelect",
-        tags$i(icon("arrows-split-up-and-left"), style="margin-right:10px"),
-        span("Train/Test Splitting, and Model Training")
-      )
-    ),
+    # # Train/Test Split
+    # tags$li(
+    #   tags$a(
+    #     id="mdlTTOverviewSelect",
+    #     tags$i(icon("arrows-split-up-and-left"), style="margin-right:10px"),
+    #     span("Train/Test Splitting, and Model Training")
+    #   )
+    # ),
     # IPP
     tags$li(
       tags$a(
