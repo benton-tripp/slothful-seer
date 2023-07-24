@@ -13,8 +13,7 @@ The app can be run from an R console (e.g., RStudio) either by cloning this repo
 
 ```{r}
 
-# This code that can be pasted into an R console and run locally
-# without cloning this repository:
+# This code that can be pasted into an R console to run locally without cloning the repo:
 shiny::runGitHub(repo="benton-tripp/slothful-seer/")
 
 ```
