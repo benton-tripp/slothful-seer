@@ -68,15 +68,19 @@ plot.preds <- function(pred.lis, plot.type, model.names) {
         ggtitle(paste0("Distribution of ", model.name, " Pred. Probability"))
       
     } else if (plot.type == "Bar Plot") {
-      # TODO: FIX BAR PLOTS
-      browser()
       plt.data <- tidyr::pivot_longer(test.df, c("y", "yhat")) %>%
         mutate(`Predicted/Actual` = factor(ifelse(name == "y", "Actual", "Predicted"), 
                              levels=c("Actual", "Predicted")))
-      plt <- ggplot(plt.data, aes(x=value, fill=`Predicted/Actual`)) + 
-        geom_bar(color="black", alpha = 0.8, position="dodge") +
+      actual.total <- plt.data %>% 
+        filter(`Predicted/Actual` == "Actual") %>% 
+        summarize(n=n()) %>% ungroup() %>% pull()
+      plt.data <- plt.data %>%
+        group_by(value, `Predicted/Actual`) %>%
+        summarize(`%` = round(n()/actual.total * 100, 2))
+      plt <- ggplot(plt.data, aes(x=`Predicted/Actual`, y=`%`, fill=value)) + 
+        geom_bar(stat="identity", color="black", alpha = 0.8, position="dodge") +
         theme_minimal() + 
-        labs(title=paste(model.name, "Prediction Totals vs. Actuals"))
+        labs(title=paste(model.name, "Predicted Presence % vs. Actuals"))
     } 
     plt + theme(axis.text.x = element_text(size = 12),
                 text = element_text(size = 12), 

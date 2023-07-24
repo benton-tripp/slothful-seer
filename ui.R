@@ -477,11 +477,11 @@ model.page <- conditionalPanel(
                     p("By fitting an IPP to presence-only data, we estimate the underlying 
                   intensity function ", tags$span(class="math inline", 
                                                   HTML("\\(\\lambda(x)\\)")),
-                      ". This informs us about how the rate of event occurrence — in this 
-                  case, the number of three-toed sloth counts — changes across different 
-                  times or locations. The fitted model predicts the count of sloths at each point. Because the 
-                   other models in this application model probabilities, an extra step is 
-                   needed to calculate the probability at each point that the count is at least 1:"),
+                      ". This informs us about how the rate of event occurrence — in this ",
+                  "case, the number of three-toed sloth counts — changes across different 
+                  times or locations. The fitted model predicts the count of sloths at each point.",
+                  "Because the other models in this application model probabilities, an extra step is ",
+                  "needed to calculate the probability at each point that the count is at least 1:"),
                     p(
                       tags$span(class="math inline", HTML("\\(P(At\\ least\\ 1) = 1 - e^{-x}\\)")),
                       ", where ", 
