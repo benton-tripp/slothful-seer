@@ -3,6 +3,7 @@ suppressWarnings(suppressPackageStartupMessages(library(shiny)))
 suppressWarnings(suppressPackageStartupMessages(library(shinydashboard)))
 suppressWarnings(suppressPackageStartupMessages(library(shinyjs)))
 suppressWarnings(suppressPackageStartupMessages(library(DT)))
+source("utils/modeling_info_sidebar.R")
 
 main.sidebar <- dashboardSidebar(
   sidebarMenu(
@@ -331,155 +332,207 @@ model.page <- conditionalPanel(
         tabPanel(
           "Model Info",
           div(
-            class="shiny-row",
-            style="padding-right:20px;",
+            class="modeling-info-section",
             div(
-              id="modelingInfoSidebar",
-              tags$ul(
-                tags$li(
-                  tags$a(
-                    id="mdlOverviewSelect",
-                    tags$i(icon("circle-info"), style="margin-right:10px"),
-                    span("Modeling Overview")
-                  )
-                ),
-                # Train/Test Split
-                tags$li(
-                  tags$a(
-                    id="mdlTTOverviewSelect",
-                    tags$i(icon("arrows-split-up-and-left"), style="margin-right:10px"),
-                    span("Train/Test Splitting")
-                  )
-                ),
-                # IPP
-                tags$li(
-                  tags$a(
-                    id="mdlIPPOverviewSelect",
-                    tags$i(icon("line-chart"), style="margin-right:10px"),
-                    span("Inhomogeounous Poisson Process")
-                  )
-                ),
-                # MaxEnt
-                tags$li(
-                  tags$a(
-                    id="mdlMEOverviewSelect",
-                    tags$i(icon("maximize"), style="margin-right:10px"),
-                    span("Maximum Entropy")
-                  )
-                ),
-                # GLM
-                tags$li(
-                  tags$a(
-                    id="mdlGLMOverviewSelect",
-                    tags$i(icon("bar-chart"), style="margin-right:10px"),
-                    span("Generalized Linear Model")
-                  )
-                ),
-                # Classification Tree & Random Forest
-                tags$li(
-                  tags$a(
-                    id="mdlRFOverviewSelect",
-                    tags$i(icon("tree"), style="margin-right:10px"),
-                    span("Classification Trees & Random Forests")
-                  )
-                )
-              )
-            ),
-            div(
+              id="modelingInfoText",
               conditionalPanel(
                 condition="input.menuItemSelected == 'mdlOverviewSelect'",
                 div(
-                  h3("Model Info: Overview")
+                  id="mainModelOverviewSection",
+                  modeling.info.sidebar,
+                  div(
+                    class="model-overview-page",
+                    h3("Model Info: Overview")
+                  )
                 )
               ),
               conditionalPanel(
                 condition="input.menuItemSelected == 'mdlTTOverviewSelect'",
                 div(
-                  h3("Splitting the Data into Train/Test Sets")
+                  id="trainTestOverviewSection",
+                  modeling.info.sidebar,
+                  div( 
+                    class="model-overview-page",
+                    h3("Splitting the Data into Train/Test Sets"),
+                    p(
+                      "The process of partitioning the dataset into training and testing subsets",
+                      "is a crucial step in model evaluation. A stratified sampling approach is",
+                      "employed to ensure that both subsets are representative of the overall data",
+                      "distribution, especially in terms of spatial and categorical variables."
+                    ),
+                    div(
+                      h4("Spatial Stratification"),
+                      p(
+                        "The dataset is divided into grids based on latitude and longitude values.",
+                        " This spatial stratification ensures that the train/test split is",
+                        " geographically representative and avoids over-concentration of ",
+                        "data points in specific regions."
+                      )
+                    ),
+                    div(
+                      h4("Categorical Stratification"),
+                      p(
+                        "In addition to spatial stratification, the data is further stratified based on",
+                        "categorical variables, specifically the different biomes (eco-regions). This ",
+                        "ensures that the distribution of these categorical variables is consistent",
+                        "across both training and testing subsets."
+                      )
+                    ),
+                    div(
+                      h4("Stratified Target"),
+                      p(
+                        "The target variable (presence) is also used to further stratify the data. ",
+                        "This ensures that the train and test sets have approximately the same ",
+                        "percentage of samples of each target class as the complete set. This is ", 
+                        "particularly important for imbalanced datasets where one class significantly",
+                        " outnumbers the other. Without stratification, there's a risk that the ", 
+                        "minority class might not be represented in the train or test set."
+                      )
+                    ),
+                    div(
+                      h4("Data Partitioning"),
+                      p(
+                        "Once stratification is complete, the data is partitioned into training and",
+                        "testing sets based on a user-specified proportion, \"Split %\"."
+                      )
+                    ),
+                    div(
+                      h3("Model Training"),
+                      div( 
+                        p(
+                          "The model training phase is pivotal in the development",
+                          "of predictive models. For the purpose of this application,",
+                          "two baseline models, IPP and MaxEnt, are trained without",
+                          "any user-defined parameters. These models serve as reference",
+                          "points for comparison against user-defined models, given their",
+                          "prominence in Species Distribution modeling methods."
+                        ),
+                        p(
+                          "MaxEnt, short for 'Maximum Entropy', is a widely-used method",
+                          "for species distribution modeling. In this application, the",
+                          "MaxEnt model is implemented using the ", tags$code("dismo"), 
+                          "package, which acts as a wrapper to the original MaxEnt software",
+                          "written in Java by Phillips, Dudik, and Schapire. More details",
+                          "about the original software can be found at the ", 
+                          tags$a(href="https://biodiversityinformatics.amnh.org/open_source/maxent/", 
+                                 "official MaxEnt website"), "."
+                        ),
+                        p(
+                          "The IPP (Inhomogeneous Poisson Process) model is another method",
+                          "used for presence-only predictions. The model is trained using the", 
+                          tags$code("spatstat"), " package. The process involves converting",
+                          "the data into a point pattern object (", tags$code("ppp"), ") and then",
+                          "fitting the IPP model using environmental covariates. The covariates",
+                          "are represented as raster images, and the model formula is dynamically",
+                          "constructed based on the available rasters."
+                        ),
+                        tags$span(class="math inline", 
+                                  HTML("\\( locations \\sim covariate_1 + covariate_2 + \\ldots \\)")),
+                        p(
+                          "This formula represents the relationship between the locations and",
+                          "the environmental covariates. The IPP model is then fitted using the", 
+                          tags$code("ppm"), " function, with the constructed formula and raster",
+                          "images as covariates."
+                        ),
+                        p(
+                          "Beyond the baseline models, this application also facilitates",
+                          "the training of three user-defined models: GLM (Logistic Regression),",
+                          "Classification Tree, and Random Forest. These models are tailored",
+                          "based on user input and are designed to provide more flexibility",
+                          "and specificity in predictions.",
+                          "To ensure robustness and generalizability, each of these models",
+                          "is trained using k-fold cross-validation. The value of ",
+                          tags$span(class="math inline", HTML("\\( k \\)")),
+                          ' "Cross-Validation Folds"',
+                          "is user-defined, allowing for a customizable validation approach.",
+                          "During the cross-validation process, the optimal combination of",
+                          "hyperparameters, as provided by the user, is determined. This ensures",
+                          "that the models are not only tailored to the data but also optimized",
+                          "for the best predictive performance."
+                        ),
+                        p(
+                          "Further details on each model type, their intricacies, and their",
+                          "respective hyperparameters will be discussed in subsequent sections."
+                        )
+                      )
+                    )
+                  )
                 )
               ),
               conditionalPanel(
                 condition="input.menuItemSelected == 'mdlIPPOverviewSelect'",
                 div(
                   id="ippOverviewSection",
-                  h3("Inhomogeneous Poisson Process (IPP)"),
-                  p("An Inhomogeneous Poisson Process (IPP) model is a statistical model used 
-                  for events that occur randomly over space or time. Unlike a regular Poisson
-                  process, the rate of event occurrence in an IPP can vary. IPP models are 
-                  often used in presence-only problems to model the intensity of events
-                  across different locations or times. In the context of this application, the 
-                  IPP model is defined as:"),
-                  tags$ul(
-                    tags$li(
-                      p(
-                        "IPP Function: In the case of the IPP model in this application, the
-                        intensity", tags$span(class="math inline", HTML("\\(\\lambda\\)")),
-                        "is not a constant, but is a function of the location and covariates ",
-                        tags$span(class="math inline", HTML("\\(x\\)")),
-                        ". Hence the term ‘inhomogeneous’."
-                      ),
-                      p(tags$span(class="math inline", "\\(\\lambda(x) = N \\cdot g(x)\\)"), 
-                        ", where ", tags$span(class="math inline", HTML("\\(N\\)")), 
-                        " is the total number of events, and ", tags$span(class="math inline", 
-                                                                          HTML("\\(g(x)\\)")),
-                        " is the density function.")
+                  modeling.info.sidebar,
+                  div(
+                    class="model-overview-page",
+                    h3("Inhomogeneous Poisson Process (IPP)"),
+                    p("An Inhomogeneous Poisson Process (IPP) model is a statistical model used ",
+                      "for events that occur randomly over space or time. Unlike a regular Poisson ",
+                      "process, the rate of event occurrence in an IPP can vary. IPP models are ",
+                      "often used in presence-only problems to model the intensity of events ",
+                      "across different locations or times. The IPP can be defined as:"
                     ),
-                    tags$li(
-                      "Probability Density Function (PDF): ",
-                      p(tags$span(class="math inline", 
-                                  "\\[f(x) = \\lambda e^{-\\lambda x}, \\quad x \\geq 0\\]"))
-                    ),
-                    tags$li(
-                      "Cumulative Distribution Function (CDF):",
-                      p(tags$span(class="math inline", 
-                                  HTML("\\[F(x) = 1 - e^{-\\lambda x}, \\quad x \\geq 0\\]"))),
-                      
-                    ),
-                    tags$li(
-                      p("By fitting an IPP to presence-only data, we estimate the underlying 
+                    p(tags$span(class="math inline", "\\(\\lambda(x) = N \\cdot g(x)\\)"), 
+                      ", where ", tags$span(class="math inline", HTML("\\(N\\)")), 
+                      " is the total number of events, and ", tags$span(class="math inline", 
+                                                                        HTML("\\(g(x)\\)")),
+                      " is the density function."),
+                    tags$i("In the case of the IPP model in this ",
+                           "application, the intensity ", 
+                           tags$span(class="math inline", HTML("\\(\\lambda\\)")),
+                           "is not a constant, but is a function of the location and covariates ",
+                           tags$span(class="math inline", HTML("\\(x\\)")),
+                           ". Hence the term ‘inhomogeneous’."),
+                    p("By fitting an IPP to presence-only data, we estimate the underlying 
                   intensity function ", tags$span(class="math inline", 
                                                   HTML("\\(\\lambda(x)\\)")),
-                        ". This informs us about how the rate of event occurrence — in this 
+                      ". This informs us about how the rate of event occurrence — in this 
                   case, the number of three-toed sloth counts — changes across different 
-                  times or locations.")
-                    ),
-                    tags$li(
-                      p("The fitted model predicts the count of sloths at each point. Because the 
+                  times or locations. The fitted model predicts the count of sloths at each point. Because the 
                    other models in this application model probabilities, an extra step is 
                    needed to calculate the probability at each point that the count is at least 1:"),
-                      p(
-                        tags$span(class="math inline", HTML("\\(P(At\\ least\\ 1) = 1 - e^{-x}\\)")),
-                        ", where ", 
-                        tags$span(class="math inline", HTML("\\(x\\)")), 
-                        " represents the predicted values from the intensity function ",
-                        tags$span(class="math inline", HTML("\\(\\lambda(x)\\)")),
-                        "for each location in the raster.")
+                    p(
+                      tags$span(class="math inline", HTML("\\(P(At\\ least\\ 1) = 1 - e^{-x}\\)")),
+                      ", where ", 
+                      tags$span(class="math inline", HTML("\\(x\\)")), 
+                      " represents the predicted values from the intensity function ",
+                      tags$span(class="math inline", HTML("\\(\\lambda(x)\\)")),
+                      "for each location in the raster. This is derrived from the PDF and CDF, ",
+                      "given", tags$span(class="math inline", HTML("\\(\\lambda(x)\\)")), "."),
+                    tags$ul(
+                      tags$li(
+                        tags$span(class="math inline", 
+                                  "\\( PDF(x) = \\lambda e^{-\\lambda x}, \\quad x \\geq 0\\)")
+                      ),
+                      tags$li(
+                        tags$span(class="math inline", 
+                                  HTML("\\( CDF(x) = 1 - e^{-\\lambda x}, \\quad x \\geq 0\\)"))
+                      )
                     ),
-                    tags$li(
-                      "IPP Assumptions:",
-                      tags$ul(
-                        tags$li(
-                          "Independence: It is assumed that the events occur independently in space 
+                    h4("IPP Assumptions"),
+                    tags$ul(
+                      tags$li(
+                        "Independence: It is assumed that the events occur independently in space 
                     or time, meaning the occurrence of an event at one location or time does 
                     not affect the occurrence of an event at another location or time."
-                        ),
-                        tags$li(
-                          "Inhomogeneity: It is assumed that the intensity function can vary across 
+                      ),
+                      tags$li(
+                        "Inhomogeneity: It is assumed that the intensity function can vary across 
                     space or time, as opposed to a homogeneous poisson process, which assumes 
                     a constant rate of event occurrence."
-                        ),
-                        tags$li(
-                          "Known Intensity Function: An IPP assumes that the form of the intensity 
+                      ),
+                      tags$li(
+                        "Known Intensity Function: An IPP assumes that the form of the intensity 
                    function is known, although the parameters of the function need to be 
                    estimated from the data. This assumption can be violated if the true 
                    intensity function is not well-captured by the chosen form." 
-                        ),
-                        tags$li(
-                          "Complete Spatial Coverage: An IPP assumes that the entire study area
+                      ),
+                      tags$li(
+                        "Complete Spatial Coverage: An IPP assumes that the entire study area
                     has been surveyed and that presence data is available for all locations 
                     where the species is present. This assumption can be violated due to 
                     incomplete or biased sampling."
-                        )
                       )
                     )
                   )
@@ -488,21 +541,128 @@ model.page <- conditionalPanel(
               conditionalPanel(
                 condition="input.menuItemSelected == 'mdlMEOverviewSelect'",
                 div(
-                  h3("Maximum Entropy")
+                  id="maxEntOverviewSection",
+                  modeling.info.sidebar,
+                  div( 
+                    class="model-overview-page",
+                    h3("Maximum Entropy Model (MaxEnt)"),
+                    p(
+                      "Maximum Entropy (MaxEnt) model is a ",
+                      "method designed to predict the probability distribution that is most spread",
+                      "out, or of maximum entropy, subject to known constraints. In the context of",
+                      "presence-only prediction, MaxEnt is commonly used to estimate the potential",
+                      "distribution of occurrences (e.g., species observations)",
+                      " based on environmental constraints."
+                    ),
+                    div(
+                      h4("Entropy Function"),
+                      p(
+                        "Entropy is a measure of uncertainty or randomness. The MaxEnt model aims",
+                        "to maximize this entropy given the constraints. The entropy function is ",
+                        "defined as:"
+                      ),
+                      tags$p(
+                        tags$span(
+                          class="math inline", 
+                          HTML("\\( H(p) = -\\sum_{i} p(x_i) \\log(p(x_i)) \\)")
+                          ),", where ", tags$span(class="math inline", HTML("\\( p(x_i) \\)")), 
+                        " is the probability of event ", 
+                        tags$span(class="math inline", HTML("\\( x_i \\)")), "."
+                      )
+                    ),
+                    div(
+                      h4("Constraints"),
+                      p(
+                        "Constraints in MaxEnt are derived from the input data, ensuring that the",
+                        "predicted distribution matches the empirical distribution in terms of",
+                        "expected feature values. These constraints help guide the model towards",
+                        "a realistic prediction."
+                      )
+                    ),
+                    div(
+                      h4("Model Application"),
+                      p(
+                        "In presence-only prediction, MaxEnt is used to predict the potential",
+                        "distribution of occurrences in unsampled areas based on the environmental",
+                        "characteristics of known presence locations. The model outputs a probability",
+                        "distribution over the study area, indicating the suitability of each location."
+                      )
+                    )
+                  )
                 )
               ),
               conditionalPanel(
                 condition="input.menuItemSelected == 'mdlGLMOverviewSelect'",
                 div(
-                  h3("GLM")
+                  id="glmOverviewSection",
+                  modeling.info.sidebar,
+                  div( 
+                    class="model-overview-page",
+                    h3("Generalized Linear Models (Logistic Regression)"),
+                    p(
+                      "Generalized Linear Models (GLMs) are a class of models that generalize",
+                      "linear regression by allowing for non-normal distributions of the target",
+                      "variable. In the context of binary classification, the GLM becomes a",
+                      "logistic regression, modeling the log odds of the probability of the event."
+                    ),
+                    div(
+                      h4("Logistic Function"),
+                      p(
+                        "The logistic function is used to squeeze the output of a linear equation",
+                        "between 0 and 1. The equation for the logistic function is:"
+                      ),
+                      p(
+                        tags$span(class="math inline", 
+                                  HTML("\\( f(z) = \\frac{1}{1 + e^{-z}} \\)")),
+                        HTML("&nbsp;&nbsp;&nbsp;"),  # Non-breaking spaces
+                        ", where ", tags$span(class="math inline", HTML("\\(z\\)")), 
+                        " is the output of the linear layer of the model."
+                      )
+                    ),
+                    div(
+                      h4("Regularization"),
+                      p(
+                        "Regularization is a technique used to prevent overfitting by adding a",
+                        "penalty to the loss function. In the context of the ",
+                        tags$code("glmnet"), " package used in this applicaction both L1 (Lasso)",
+                        "and L2 (Ridge) regularization are used. The strength and type of",
+                        "regularization are controlled by the ", 
+                        tags$span(class="math inline", HTML("\\(\\alpha\\)")), " (", tags$code("alpha"),
+                        ") and ", tags$span(class="math inline", HTML("\\(\\lambda\\)")), 
+                        " (", tags$code("lambda"), ") parameters."
+                      )
+                    ),
+                    div(
+                      h4("Model Tuning"),
+                      p(
+                        "For the tuning grid used in the model in the application, the",
+                        "following parameters are iteratively tested (as defined by the user):"
+                      ),
+                      tags$ul(
+                        tags$li(tags$code("alpha"), 
+                                "This controls the mix between L1 and L2 regularization. An ",
+                                tags$code("alpha"), " of 1 is Lasso regression and 0 is Ridge regression."),
+                        tags$li(tags$code("lambda"), 
+                                "This is the regularization strength. Larger values of ", 
+                                tags$code("lambda"), " increase the regularization effect.")
+                      ),
+                      p(
+                        "The combination of ", tags$code("alpha"), " and ", tags$code("lambda"), 
+                        " allows for elastic net regularization, which is a mix of L1 and L2."
+                      )
+                    )
+                  )
                 )
+                
               ),
               conditionalPanel(
                 condition="input.menuItemSelected == 'mdlRFOverviewSelect'",
                 id="rfOverviewSection",
                 div(
-                  h3("Classification Trees"),
+                  modeling.info.sidebar,
                   div( 
+                    class="model-overview-page",
+                    h3("Classification Trees"),
                     p(
                       "Classification trees are a type of decision tree algorithm that",
                       "aims to classify instances into predefined classes. They work by",
@@ -515,15 +675,19 @@ model.page <- conditionalPanel(
                       p(
                         "The Gini impurity is commonly used in decision trees for binary",
                         "classification. It calculates the impurity (or disorder) of a set,",
-                        "where p is the probability of choosing an item from one class.",
+                        "given the probability of choosing an item from one class.",
                         "The Gini impurity is 0 when all items belong to a single class,",
                         "and it is maximized when the items are evenly distributed across",
-                        "different classes."
+                        "different classes. For a binary classification probelem, the Gini",
+                        " impurity measure is defined as:"
                       ),
-                      tags$span(class="math inline", 
-                                HTML("\\( Gini = 2p(1-p) \\)"))
+                      p(
+                        tags$span(class="math inline", 
+                                  HTML("\\( Gini = 2p(1-p) \\)")),
+                        ", where ", tags$span(class="math inline", HTML("\\( p \\)")), " is the",
+                        " probability of choosing an item from one class."
+                      )
                     ),
-                    br(),
                     div(
                       h4("Information Gain"),
                       p(
@@ -539,8 +703,7 @@ model.page <- conditionalPanel(
                           class="math inline", 
                           HTML("\\( IG_{Gini}(D, A) = Gini(D) - \\left( \\frac{|D_1|}{|D|} ",
                                "\\cdot Gini(D_1) + \\frac{|D_2|}{|D|} \\cdot Gini(D_2) \\right) \\)")),
-                        tags$br(),
-                        "Given:",
+                        p("Given:"),
                         tags$ul(
                           tags$li(
                             HTML("\\( Gini(D) \\) is the Gini impurity of the dataset \\( D \\) ",
@@ -554,7 +717,6 @@ model.page <- conditionalPanel(
                         )
                       )
                     ),
-                    br(),
                     div(
                       h4("Model Tuning"),
                       p(
@@ -565,39 +727,33 @@ model.page <- conditionalPanel(
                         "If the difference in the impurity measure (e.g., Gini) of a split is below",
                         "this threshold, the split is not made, resulting in a more generalized tree."
                       )
-                    )
-                  ),
-                  div(
+                    ),
                     h3("Random Forests"),
+                    p(
+                      "A random forest is an ensemble machine learning model that combines",
+                      "the predictions of several decision trees to improve predictive accuracy.",
+                      "Unlike boosting, the trees in a random forest are trained independently.",
+                      "Each tree is trained on a different bootstrap sample of the data (a sample",
+                      "drawn with replacement), and at each node, a random subset of features is",
+                      "considered for splitting. This randomness helps to make the model robust",
+                      "to overfitting and improves predictive accuracy by reducing the correlation",
+                      "between the trees."
+                    ),
+                    p(
+                      "Random forests are known for their robustness and versatility. They can",
+                      "handle both numerical and categorical data, they don’t require feature", 
+                      "scaling, and they can model complex non-linear relationships. However,",
+                      "they can be computationally intensive to train, and their predictions",
+                      "are not as interpretable as those of a single decision tree."
+                    ),
                     div(
+                      h4("Extremely Randomized Trees (ExtraTrees)"),
                       p(
-                        "A random forest is an ensemble machine learning model that combines",
-                        "the predictions of several decision trees to improve predictive accuracy.",
-                        "Unlike boosting, the trees in a random forest are trained independently.",
-                        "Each tree is trained on a different bootstrap sample of the data (a sample",
-                        "drawn with replacement), and at each node, a random subset of features is",
-                        "considered for splitting. This randomness helps to make the model robust",
-                        "to overfitting and improves predictive accuracy by reducing the correlation",
-                        "between the trees."
+                        "The “extratrees” rule introduces additional randomness into the",
+                        "tree-building process. Instead of computing the best split point",
+                        "for a feature, a random split point is chosen. This added randomness",
+                        "can sometimes result in better generalization to unseen data."
                       ),
-                      p(
-                        "Random forests are known for their robustness and versatility. They can",
-                        "handle both numerical and categorical data, they don’t require feature", 
-                        "scaling, and they can model complex non-linear relationships. However,",
-                        "they can be computationally intensive to train, and their predictions",
-                        "are not as interpretable as those of a single decision tree."
-                      ),
-                      br(),
-                      div(
-                        h4("Extremely Randomized Trees (ExtraTrees)"),
-                        p(
-                          "The “extratrees” rule introduces additional randomness into the",
-                          "tree-building process. Instead of computing the best split point",
-                          "for a feature, a random split point is chosen. This added randomness",
-                          "can sometimes result in better generalization to unseen data."
-                        )
-                      ),
-                      br(),
                       div(
                         h4("Out-of-Bag Error"),
                         p(
@@ -611,7 +767,6 @@ model.page <- conditionalPanel(
                           class="math inline", 
                           HTML("\\( OOB = \\frac{1}{N} \\sum_{i=1}^{N} I(y_i \\neq \\hat{y}_i) \\)"))
                       ),
-                      br(),
                       h4("Model Tuning"),
                       p(
                         "For the tuning grid used in the model in the application, the",
@@ -638,7 +793,6 @@ model.page <- conditionalPanel(
                     )
                   )
                 )
-                
               )
             )
           )
@@ -877,7 +1031,8 @@ model.page <- conditionalPanel(
                 style="margin-left:15px;",
                 actionButton("reset_model_updates", "Reset to Default")
               )
-            )
+            ),
+            br()
           )
         ),
         tabPanel(
@@ -967,6 +1122,16 @@ ui <- div(
   ),
   div(
     id="headerSection",
+    class="shiny-row",
+    #a(
+    ##  href="#",
+    #  role="button",
+    #  toggle="offcanvas",
+    #  class="sidebar-toggle",
+    #  id="sidebarToggle",
+    #  tags$span(class="sr-only", "Toggle navigation"),
+    #  
+    #),
     h1(
       id="mainTitle", 
       "Modeling the Distribution of the Three-Toed Sloth")

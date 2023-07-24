@@ -15,7 +15,7 @@ set.seed(19)
 
 # Source utility functions (e.g., get_data.R loads the data)
 .utils <- file.path("utils", list.files("utils"))
-walk(.utils, ~source(.x)) %>% suppressWarnings()
+walk(.utils[.utils != "utils/modeling_info_sidebar.R"], ~source(.x)) %>% suppressWarnings()
 
 server <- function(input, output, session) {
   

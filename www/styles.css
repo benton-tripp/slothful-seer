@@ -4,8 +4,13 @@ html {
   background-color: #fff !important;
 }
 
+
 #uiBackground {
   background-color:#fff !important;
+}
+
+.left-side, .main-sidebar {
+  padding-top: 0 !important;
 }
 
 #headerSection {
@@ -23,9 +28,23 @@ html {
   border-bottom: 1px solid #cccccc;
 }
 
+.sidebar-toggle {
+  margin-left: 10px !important;
+  margin-top: 15px !important;
+}
+
+.hb-menu-bar {
+    width: 30px;
+    height: 4px;
+    background-color: #333333;
+    margin: 6px 0;
+}
+
+
 #mainTitle {
   margin-left:15px !important; 
   apply white-space: nowrap !important;
+  font-size: 26px !important;
 }
 
 .wrapper {
@@ -86,8 +105,12 @@ a {
 }
 
 #ippOverviewSection, #rfOverviewSection p, #rfOverviewSection span, 
-#rfOverviewSection code, #rfOverviewSection li {
-  font-size: 16.5px !important;
+#rfOverviewSection code, #rfOverviewSection li, #glmOverviewSection p, 
+#glmOverviewSection span, #glmOverviewSection code, #glmOverviewSection li,
+#maxEntOverviewSection p, #maxEntOverviewSection span, #maxEntOverviewSection code,
+#maxEntOverviewSection li, #trainTestOverviewSection p, #trainTestOverviewSection li,
+#trainTestOverviewSection span, #trainTestOverviewSection code {
+  font-size: 18px !important;
 }
 
 #edaMapSection {
@@ -117,22 +140,87 @@ a {
   color:gray;
 }
 
+.model-overview-page {
+  margin-left:65px !important
+}
+
+.model-overview-page h4 {
+  font-size: 23.5px !important;
+}
+
+.model-overview-page h3 {
+  font-size: 27px !important;
+}
+
+.modeling-info-section {
+  padding-right:80px !important;
+  padding-left:20px !important;
+}
+
+
 #modelingInfoSidebar {
+  max-width: 360px !important;
+  float: left;
   margin-top: 10px !important;
   min-width: 360px !important;
   background-color: #dddddd !important;
   padding-left:5px !important;
   max-height: 160px !important;
   min-height: 160px !important;
-  margin-right:15px !important;
-  border-radius: 5px !important; /* Slightly rounded corners */
-  border: 1px solid #cccccc !important; /* Thin border slightly darker than the background */
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1) !important; /* Faint shadow */
+  margin-right:25px !important;
+  margin-bottom:5px !important;
+  border-radius: 5px !important;
+  border: 1px solid #cccccc !important;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1) !important;
+}
+
+@media (max-width: 1275px) {
+  #modelFittingSection {
+    overflow-x:scroll;
+  }
+}
+
+@media (max-width: 1000px) {
+  .model-overview-page {
+    margin-left: 15px !important;
+    overflow-x:scroll !important;
+    min-width: 400px !important;
+    max-width: 770px !important;
+  }
+
+  .modeling-info-section {
+    padding-right: 15px !important;
+    padding-left: 20px !important;
+  }
+  
+  #modelingInfoSidebar {
+    float: top;
+  }
+}
+
+@media (max-width: 765px) {
+  #headerSection {
+    margin-left:10px !important; 
+  }
+  
+  #mainTitle {
+    font-size: 22px !important;
+  }
+}
+
+@media (max-width: 519px) {
+  #mainTitle {
+    margin-top: 4px !important;
+  }
 }
 
 #modelingInfoSidebar ul {
   list-style-type: none !important; 
-  padding-left: 0 !important;
+  padding-left: 10px !important;
+}
+
+#modelingInfoText {
+  clear: left;
 }
 
 #modelFittingSection input, 
@@ -249,3 +337,27 @@ a {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+
+
+/* Adjust using js on toggle sidebar click 
+.main-header, .navbar {
+  margin-left: 0 !important;
+}
+*/
+
+/* NO LONGER IN USE
+
+.logo {
+  width: 0 !important;
+  padding: 0 !important;
+}
+
+.left-side, .main-sidebar {
+  padding-top: 0 !important;
+}
+
+.main-header {
+  position: static !important;
+}
+*/
