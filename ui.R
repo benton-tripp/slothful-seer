@@ -182,7 +182,7 @@ overview.page <- conditionalPanel(
               id="regionMap",
               style="margin:25px;",
               tags$img(src="images/study_area.png", alt="Area Map", 
-                       style="width:600px; height:600px;"),
+                       style="width:125%; height:125%;"),
             ),
           )  
         )
@@ -260,12 +260,12 @@ eda.page <- conditionalPanel(
                            choices=c( "Table", "Histogram", "Density", "Combined Plot"), 
                            selected="Table"),
               conditionalPanel(
-                style="overflow-x:scroll; min-width:600px; margin-top:15px; margin-left:15px;",
+                style="min-width:600px; margin-top:15px; margin-left:15px;",
                 "input.cont_plot_type == 'Table'",
                 div(style="margin-bottom:6px;", DTOutput("cont_table"))
               ),
               conditionalPanel(
-                style="overflow-x:scroll; min-width:780px; margin-top:15px; margin-left:15px;",
+                style="min-width:780px; margin-top:15px; margin-left:15px;",
                 "input.cont_plot_type != 'Table'",
                 selectInput("continuous_var", "Select Variable", choices=NULL),
                 plotOutput("cont_plot")
@@ -1030,54 +1030,70 @@ model.page <- conditionalPanel(
           div(
             class="shiny-row",
             div(
-              style="max-width:175px;",
-              radioButtons("viz_preds", label="Select View", 
-                           choices=c("Model Metrics", "Estimated Probability Raster", 
-                                     "Predicted vs. Actual Map", "Probability Density Plot", 
-                                     "Bar Plot", "Confusion Matrix"), 
-                           selected="Model Metrics", 
-                           inline=F),
-              conditionalPanel(
-                condition="input.viz_preds != 'Estimated Probability Raster' && 
+              id="modelEvalSelection",
+              class="shiny-row",
+              div(
+                id="radioSection",
+                style="max-width:175px;",
+                radioButtons("viz_preds", label="Select View", 
+                             choices=c("Model Metrics", "Estimated Probability Raster", 
+                                       "Predicted vs. Actual Map", "Probability Density Plot", 
+                                       "Bar Plot", "Confusion Matrix"), 
+                             selected="Model Metrics", 
+                             inline=F),
+                conditionalPanel(
+                  condition="input.viz_preds != 'Estimated Probability Raster' && 
                          input.viz_preds != 'Probability Density Plot'",
-                div(
-                  style="max-width:170px;",
-                  # Select Cutoff (default to 0.5)
-                  selectInput("predictionCutoff", "Select Cutoff", 
-                              choices=seq(0.1, 0.9, by=0.1),
-                              selected=0.5)
+                  div(
+                    style="max-width:170px;",
+                    # Select Cutoff (default to 0.5)
+                    selectInput("predictionCutoff", "Select Cutoff", 
+                                choices=seq(0.1, 0.9, by=0.1),
+                                selected=0.5)
+                  )
                 )
-              )
+              ),
+              actionButton("toggleRadioBtn", "-", width=30, height=10)
             ),
             div(
               id="modelOutputs",
-              style="overflow-x:scroll; min-height:500px; margin:15px;
-                     border: 1px solid #888;",
-              conditionalPanel(
-                condition="input.viz_preds == 'Model Metrics'",
-                style="max-width:600px;",
-                DTOutput("metric_table")
-              ),
-              conditionalPanel(
-                condition="input.viz_preds == 'Estimated Probability Raster'",
-                plotOutput("raster_estimate")
-              ),
-              conditionalPanel(
-                condition="input.viz_preds == 'Predicted vs. Actual Map'",
-                plotOutput("pred_map")
-              ),
-              conditionalPanel(
-                condition="input.viz_preds == 'Probability Density Plot'",
-                plotOutput("prob_density")
-              ),
-              conditionalPanel(
-                condition="input.viz_preds == 'Bar Plot'",
-                plotOutput("pred_bar")
-              ),
-              conditionalPanel(
-                condition="input.viz_preds == 'Confusion Matrix'",
-                uiOutput("confusion_matrix")
-              )
+              style="min-height:500px; margin:15px; overflow-x:scroll; 
+                     border: 0 solid #888; display: flex; justify-content: center; 
+                     align-items: center; position:relative;",
+                div(
+                  id="spinnerContainer",
+                  shinybusy::add_busy_spinner(spin = "circle")
+                ),
+                conditionalPanel(
+                  condition="input.viz_preds == 'Model Metrics'",
+                  style="max-width:600px; min-height:500px; min-width:150px;",
+                  DTOutput("metric_table")
+                ),
+                conditionalPanel(
+                  condition="input.viz_preds == 'Estimated Probability Raster'",
+                  style="min-height:500px; min-width:150px;",
+                  plotOutput("raster_estimate")
+                ),
+                conditionalPanel(
+                  condition="input.viz_preds == 'Predicted vs. Actual Map'",
+                  style="min-height:500px; min-width:150px;",
+                  plotOutput("pred_map")
+                ),
+                conditionalPanel(
+                  condition="input.viz_preds == 'Probability Density Plot'",
+                  style="min-height:500px; min-width:150px;",
+                  plotOutput("prob_density")
+                ),
+                conditionalPanel(
+                  condition="input.viz_preds == 'Bar Plot'",
+                  style="min-height:500px; min-width:150px;",
+                  plotOutput("pred_bar")
+                ),
+                conditionalPanel(
+                  condition="input.viz_preds == 'Confusion Matrix'",
+                  style="min-height:500px; min-width:150px;",
+                  uiOutput("confusion_matrix")
+                )
             )
           )
         )

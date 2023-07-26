@@ -1,6 +1,5 @@
 
 $(document).ready(function() {
-    
     // Show the loading screen when the app starts
     $('.wrapper').append('<div class="greyed-out-main"><div class="loader"></div></div>');
 
@@ -9,7 +8,7 @@ $(document).ready(function() {
       $('.greyed-out-main').remove();
     });
     
-    //Adjust menu
+    // Adjust menu
     if (!$('#mainTitle').prev().hasClass('sidebar-toggle')) {
       $('.sidebar-toggle').insertBefore('#mainTitle');
       var bars = '<div class="hb-menu-bar"></div>'.repeat(3);
@@ -17,17 +16,20 @@ $(document).ready(function() {
     }
 });
 
+
+// Trigger menu items on model info page
 $(document).on('click', 'a[id^="mdl"]', function(evt) {
   var id = $(this).attr('id');
   Shiny.setInputValue("menuItemSelected", id, {priority: 'event'});
 });
 
-
+// Greying-out function
 shinyjs.loadingPanel = function() {
-    console.log("Greyed-out");
     $('.wrapper').append('<div class="greyed-out"></div>');
 };
 
+// Loading panel/spinner remove function
 shinyjs.finishedLoadingPanel = function() {
     $('.greyed-out').remove();
 };
+

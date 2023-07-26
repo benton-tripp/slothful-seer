@@ -636,6 +636,7 @@ server <- function(input, output, session) {
       
       # Make sure all models have been trained
       if (is.empty(model.outputs) | any(is.null(model.outputs))) {
+        runjs("$('#modelOutputs').css('border', '0 solid #888')")
           showModal(
             modalDialog(
               title="Error Predicting/Evaluating Models:",
@@ -654,9 +655,10 @@ server <- function(input, output, session) {
             )
           )
         } else {
-        
+          
         # Predictions 
         js$loadingPanel()
+        runjs("$('#modelOutputs').css('border', '1px solid #888')")
         
         # Incorporate the progress bar using withProgress
         withProgress(message = "Predicting/Evaluating Models", value = 0, {
@@ -771,6 +773,21 @@ server <- function(input, output, session) {
       }, width=1000, height=500)
     }
     js$finishedLoadingPanel()
+  })
+  
+  # Show/hide the visualization options on the model evaluation tab
+  observeEvent(input$toggleRadioBtn, {
+    runjs("
+      if ($('#radioSection').css('max-width') === '175px') {
+       $('#radioSection').css('max-width', 0);
+       $('#radioSection').css('visibility', 'hidden');
+       $('#toggleRadioBtn').text('+');
+      } else {
+        $('#radioSection').css('max-width', '175px');
+        $('#radioSection').css('visibility', 'visible');
+        $('#toggleRadioBtn').text('-');  
+      }
+    ")
   })
   
   # After everything is loaded, send a message to hide the loading screen
