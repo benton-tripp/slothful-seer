@@ -49,8 +49,6 @@ the required packages is installed:
 ```{r}
 
 # Install required libraries
-
-# Install required libraries
 install.packages(c(
   "shiny",
   "shinyjs",
