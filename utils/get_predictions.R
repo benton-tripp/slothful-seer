@@ -16,8 +16,8 @@ predict.ipp <- function(model.outputs, raster.imgs, rasters, model.vars, cutoff)
   # on the cumulative distribution function of the Poisson distribution. I.e.,
   # the probability of observing zero events in a Poisson dist. is given by:
   # P(X = 0) = exp(-λ), and so P(X≥1)=1−P(X=0)=1−exp(−λ)
-  prob.at.least.1 <- calc(predicted.raster, function(x) {1 - exp(-x)})
-  crs(prob.at.least.1) <- crs(rasters[[1]])
+  prob.at.least.1 <- calc(predicted.raster, function(x) {1 - exp(-x)}) %>%
+    mask.pred(., rasters[[1]])
   
   # Extract the predicted probabilities for the test points
   ipp.probs <- raster::extract(prob.at.least.1, model.vars$train.test.data$test[, c("lon", "lat")])
@@ -49,8 +49,8 @@ predict.ipp <- function(model.outputs, raster.imgs, rasters, model.vars, cutoff)
 predict.evaluate.maxent <- function(model.outputs, rasters, model.vars, cutoff) {
   
   # Make predictions on full raster
-  maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters)
-  crs(maxent.raster) <- crs(rasters[[1]])
+  maxent.raster <- dismo::predict(model.outputs$maxent, x=rasters) %>%
+    mask.pred(., rasters[[1]])
   
   # Make predictions on the test data
   test.x <- model.vars$train.test.data$test %>% 
@@ -90,7 +90,8 @@ predict.evaluate.maxent <- function(model.outputs, rasters, model.vars, cutoff) 
 predict.evaluate.glm <- function(model.outputs, binary.rasters, model.vars, cutoff) {
   # Generate predictions on rasters (to plot probabilities)
   glm.raster <- 1 - raster::predict(object=binary.rasters, 
-                                    model=model.outputs$glm, type="prob")
+                                    model=model.outputs$glm, type="prob") %>%
+    mask.pred(., rasters[[1]])
   
   # Generate predictions test set
   glm.probs <- predict(model.outputs$glm, 
@@ -123,7 +124,8 @@ predict.evaluate.tree <- function(model.outputs, rasters, model.vars, cutoff) {
   # Generate predictions on rasters (to plot probabilities)
   ct.raster <- 1 - raster::predict(
     object=rasters, model=model.outputs$ct, type="prob", 
-    factors=list(biome=levels(model.vars$train.test.data$test.factor$biome)))
+    factors=list(biome=levels(model.vars$train.test.data$test.factor$biome))) %>%
+    mask.pred(., rasters[[1]])
   
   # Get predictions
   # Generate predictions test set
@@ -154,7 +156,8 @@ predict.evaluate.tree <- function(model.outputs, rasters, model.vars, cutoff) {
 predict.evaluate.rf <- function(model.outputs, rasters, model.vars, cutoff) {
   # Generate predictions on rasters (to plot probabilities)
   rf.raster <- 1 - raster::predict(
-    object=rasters, model=model.outputs$rf, type="prob", factors=list(biome=levels(df$biome)))
+    object=rasters, model=model.outputs$rf, type="prob", factors=list(biome=levels(df$biome))) %>%
+    mask.pred(., rasters[[1]])
   
   # Generate predictions test set
   rf.probs <- predict(model.outputs$rf, 

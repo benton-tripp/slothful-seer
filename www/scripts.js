@@ -1,8 +1,14 @@
 
 $(document).ready(function() {
     // Show the loading screen when the app starts
-    $('.wrapper').append('<div class="greyed-out-main"><div class="loader"></div></div>');
-
+    $('.wrapper').append('<div class="greyed-out-main"><div class="loader"></div>\
+    <p id="loadingMessage">Initializing application...</p></div>');
+                          
+    // This function will be called from Shiny to update the loading message
+    Shiny.addCustomMessageHandler('updateLoadingMessage', function(message) {
+      $('#loadingMessage').text(message);
+    });
+    
     // This function will be called from Shiny to hide the loading screen
     Shiny.addCustomMessageHandler('hideLoadingScreen', function(message) {
       $('.greyed-out-main').remove();

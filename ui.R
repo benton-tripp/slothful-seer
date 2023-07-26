@@ -187,7 +187,7 @@ overview.page <- conditionalPanel(
               id="regionMap",
               style="margin:25px;",
               tags$img(src="images/study_area.png", alt="Area Map", 
-                       style="width:125%; height:125%;"),
+                       style="width:100%; height:100%; max-width:800px; max-height:800px;"),
             ),
           )  
         )
@@ -295,7 +295,11 @@ eda.page <- conditionalPanel(
                 DTOutput("cat_table"),
               ),
               div(
+                id="edaContRadio",
+                
                 style="min-width:500px; margin-top:15px; margin-left:130px;",
+                radioButtons("select_data_filter_cat", label="Select Data", inline=T, 
+                             choices=c("Presence", "Absence", "All"), selected="All"),
                 radioButtons("cat_plot_type", label="Select Plot Type", inline=T, 
                              choices=c("Bar", "Pie"), selected="Bar"),
                 plotOutput("cat_plot")
@@ -1134,20 +1138,15 @@ ui <- div(
                   functions = c("loadingPanel", "finishedLoadingPanel")),
     tags$title("Slothful Seer"),
     tags$link(rel="shortcut icon", href="favicon.ico"),
-    tags$head(tags$script(src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML")),
+    tags$head(
+      tags$script(
+        src = "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML"
+        )
+      ),
   ),
   div(
     id="headerSection",
     class="shiny-row",
-    #a(
-    ##  href="#",
-    #  role="button",
-    #  toggle="offcanvas",
-    #  class="sidebar-toggle",
-    #  id="sidebarToggle",
-    #  tags$span(class="sr-only", "Toggle navigation"),
-    #  
-    #),
     h1(
       id="mainTitle", 
       "Modeling the Distribution of the Three-Toed Sloth")

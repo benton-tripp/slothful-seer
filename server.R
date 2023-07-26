@@ -13,6 +13,7 @@ purrr::walk(
 # Set seed for reproducibility
 set.seed(19)
 
+
 # Source utility functions (e.g., get_data.R loads the data)
 .utils <- file.path("utils", list.files("utils"))
 walk(.utils[.utils != "utils/modeling_info_sidebar.R"], ~source(.x)) %>% suppressWarnings()
@@ -131,16 +132,20 @@ server <- function(input, output, session) {
   })
   
   # Categorical data
-  cat.data <- cat.eda(df, "Table") %>% arrange(-n)
-  cat.datatable <- format.datatable(cat.data, page.length=nrow(cat.data), 
-                                    font.size="19px", searching=F)
-  
-  observeEvent(c(input$edaTabs, input$cat_plot_type), {
+  observeEvent(c(input$edaTabs, input$cat_plot_type, input$select_data_filter_cat), {
     if (input$edaTabs == "Categorical Data") {
+      if (input$select_data_filter_cat != "All") {
+        cat.data <- df %>%
+          filter(presence == ifelse(input$select_data_filter_cat == "Presence", 1, 0))
+      } else cat.data <- df
+      
+      summary.data <- cat.eda(cat.data, "Table") %>% arrange(-n)
+      cat.datatable <- format.datatable(summary.data, page.length=nrow(summary.data), 
+                                        font.size="19px", searching=F)
       # Table
       output$cat_table <- renderDT(cat.datatable)
       # Plot
-      output$cat_plot <- renderPlot(cat.eda(df, input$cat_plot_type), width=500)
+      output$cat_plot <- renderPlot(cat.eda(cat.data, input$cat_plot_type), width=500)
     }
   })
   

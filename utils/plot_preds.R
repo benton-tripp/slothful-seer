@@ -9,36 +9,26 @@ plot.preds <- function(pred.lis, plot.type, model.names) {
                                  yhat != y & yhat == "presence" ~ "FP",
                                  yhat != y & yhat == "no.presence" ~ "FN"),
                               levels=c("FP", "FN", "TN", "TP")))
-     
-    # if (is.null(ncol(pred.data$probs))) {
-    #   probs <- data.frame(no.presence=1-pred.data$probs, presence=pred.data$probs)
-    # } else {
-    #   probs <- pred.data$probs
-    # }
-    # print(model.name)
-    # as.data.frame(rasterToPoints(pred.data$raster)) %>%
-    #   rename("lon"="x", "lat"="y", "prob"="layer") %>%
-    #   mutate(lat = round(lat, 1), lon=round(lon, 1)) %>%
-    #   inner_join(cbind(test.df, probs) %>%
-    #                mutate(lat = round(lat, 1), lon=round(lon, 1)),
-    #              by=c("lon", "lat")) %>%
-    #   as_tibble() %>%
-    #   arrange(desc(abs(prob - presence))) %>%
-    #   print(n = 20)
-    # print("--------------------")
     
     if (plot.type == "Estimated Probability Raster") {
+      # saveRDS(pred.data, "tests/pred.data.rds")
+      # saveRDS(model.name, "tests/model.name.rds")
+      # saveRDS(test.df, "tests/test.df.rds")
       
       raster.df <- as.data.frame(rasterToPoints(pred.data$raster))
-      plt <- ggplot() +
+      plt <- ggplot()  +
+        geom_tile(data = raster.df, aes(x = x, y = y), width = 1, height = 1, color="black", linewidth=1.1) +
         geom_tile(data = raster.df, aes(x = x, y = y, fill = layer), width = 1, height = 1) +
         scale_fill_gradientn(colors = rev(terrain.colors(10))) +
-        theme_minimal() + 
-        theme(axis.text = element_text(size = 12),
+        scale_x_continuous(expand = c(0, 0)) +
+        scale_y_continuous(expand = c(0, 0)) +
+        theme_bw() + 
+        theme(text= element_text(size=11),
+              axis.text = element_text(size = 12),
               axis.title = element_text(size = 14, face = "bold")) +
         labs(x = "Longitude", y = "Latitude", title=paste(model.name, 
                                                           "Estimated Probability")) +
-        coord_equal() 
+        coord_sf(xlim = c(min(raster.df$x, na.rm=T), max(raster.df$x, na.rm=T)))
       
     } else if (plot.type == "Predicted vs. Actual Map") {
       
@@ -76,7 +66,7 @@ plot.preds <- function(pred.lis, plot.type, model.names) {
         summarize(n=n()) %>% ungroup() %>% pull()
       plt.data <- plt.data %>%
         group_by(value, `Predicted/Actual`) %>%
-        summarize(`%` = round(n()/actual.total * 100, 2))
+        summarize(`%` = round(n()/actual.total * 100, 2), .groups="keep")
       plt <- ggplot(plt.data, aes(x=`Predicted/Actual`, y=`%`, fill=value)) + 
         geom_bar(stat="identity", color="black", alpha = 0.8, position="dodge") +
         theme_minimal() + 

@@ -81,7 +81,7 @@ a {
 
 #edaCatSection, #edaTargetSection, #dataOverviewSection {
   padding-top: 0.5% !important;
-  padding-right: 20% !important;
+  padding-right: 20px !important;
   padding-bottom: 2% !important;
 }
 
@@ -127,14 +127,15 @@ a {
     overflow-x: scroll !important;
   }
 
-#select_data_filter, #cont_plot_type, #select_data_filter_cont {
+#select_data_filter, #cont_plot_type, #cat_plot_type, #select_data_filter_cont, #select_data_filter_cat {
     display: flex !important;
     align-items: left !important;
     margin-left: 15px !important;
 }
 
 #select_data_filter .shiny-options-group, #cont_plot_type .shiny-options-group,
-#select_data_filter_cont .shiny-options-group {
+#select_data_filter_cont .shiny-options-group, #select_data_filter_cat .shiny-options-group,
+#cat_plot_type .shiny-options-group {
   margin-left: 10px !important;
 }
 
@@ -335,7 +336,7 @@ a {
   /* Centering the loader */
   position: absolute;
   top: 50%;
-  left: 50%;
+  left: 45%;
   transform: translate(-50%, -50%);
 }
 
@@ -355,6 +356,16 @@ a {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column; /* Stack child elements vertically */
+}
+
+.greyed-out-main p {
+  color: white;
+  font-size: 16px;
+  position: absolute;
+  top: 46%;
+  left: 44%;
+  
 }
 
 

@@ -17,10 +17,9 @@ map.data <- function(df, title="") {
 get.study.area <- function() {
   # Load South America data
   data("wrld_simpl")
-  south.america <- subset(wrld_simpl, wrld_simpl$SUBREGION == 5 | wrld_simpl$SUBREGION == 13)
   
   # Convert to sf object
-  south.america.sf <- sf::st_as_sf(south.america)
+  south.america.sf <- sf::st_as_sf(wrld_simpl)
   
   # Assuming you have a raster object named rasters, get the extent
   study.extent <- extent(rasters[[1]])
@@ -33,16 +32,20 @@ get.study.area <- function() {
   
   # Plot
   ggplot() +
-    geom_sf(data = south.america.sf, fill = "lightgray") +
+    geom_sf(data = south.america.sf, fill = "lightblue") +
     geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), 
               color = "red", fill = NA, linewidth = 1) +
-    coord_sf()#  + 
-    # labs(title="Study Area")
+    coord_sf(xlim = c(-100, -20), ylim = c(-60, 20)) + 
+    theme_bw() +
+    theme(axis.text.y = element_text(size = 13),
+          axis.text.x = element_text(size = 13),
+          panel.grid.major = element_line(color = "#aaaaaa"))
 }
 
 # It's a lot faster to load from an image, so create one if you haven't already
 if (!file.exists("www/images/study_area.png")) {
   # Load study area map
   study.area.plt <- get.study.area()
-  ggplot2::ggsave("www/images/study_area.png", study.area.plt)
+  ggplot2::ggsave("www/images/study_area.png", study.area.plt, 
+                  width = 7, height = 7, units = "in")
 }
