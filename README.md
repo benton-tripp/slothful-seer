@@ -44,6 +44,7 @@ the required packages is installed:
 - `glmnet`
 - `Matrix`
 - `sp`
+- `sf`
 
 ```{r}
 
@@ -73,7 +74,8 @@ install.packages(c(
   "ranger",
   "glmnet",
   "Matrix",
-  "sp"
+  "sp",
+  "sf"
 ))
 
 
