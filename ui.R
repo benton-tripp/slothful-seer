@@ -51,7 +51,6 @@ overview.page <- conditionalPanel(
               ),
               div(
                 HTML(
-                  paste0(
                     "<p>The purpose of this application is to model ", 
                     "the species distribution of the three-toed sloth ", 
                     "using data science methods and spatial statistics. ",
@@ -59,54 +58,47 @@ overview.page <- conditionalPanel(
                     "biology and ecology, and is called <i>presence-only", 
                     "</i> modeling, (since the data only entails observations ",
                     "of a species presence, and not the inverse). The contents ", 
-                    "of the app include:</p>")
+                    "of the app include:</p>"
                 ),
                 tags$ul(
-                  tags$li(paste0(
+                  tags$li(
                     "Data View: The user is able to explore the raw data in a",
                     " tabular format. The interface allows for sorting, filtering,",
-                    " and downloading the data for external analyses.")
+                    " and downloading the data for external analyses."
                   ),
                   tags$li("Basic exploratory analysis: In this part of the application, the user 
                        is able to gain a deeper understanding of the observation data, as well as the
                        distribution of the variables used within the modeling process."),
-                  tags$li(paste0("Modeling the data: This part of the app includes several",
-                                " key components:"),
+                  tags$li("Modeling the data: This part of the app includes several",
+                          " key components:",
                           tags$ul(
                             tags$li(
-                              paste0(
                                 "Splitting the data: As with most supervised learning problems,",
                                 " the data is split into training/test sets in order to ",
-                                "evaluate model performance on unseen data.")
+                                "evaluate model performance on unseen data."
                             ),
                             tags$li(
-                              paste0(
                                 "Cross Validation and Model Training: the models are trained ",
                                 "using a grid of user-selected hyperparameters. Cross validation",
                                 " is used to iteratively test the different parameter ",
                                 "combinations as well as avoid overfitting the model. The",
                                 " best combination of parameters is selected as the final ",
                                 "model based on its performance."
-                              )
                             ),
                             tags$li(
-                              paste0(
                                 "Baseline models: Inhomogeneous Poisson Process (IPP) model ",
                                 "and Maximum Entropy (MaxEnt) models serve as \"baseline\" ",
                                 " models, given their frequent usage in presence-only ",
-                                "prediction problems.")
+                                "prediction problems."
                               ),
                             tags$li(
-                              paste0(
                                 "Machine learning models: Other models used less frequently ",
                                 "in presence-only prediction problems are used to model the ",
                                 " data, including a generalized linear model with optional ",
                                 "regularization, tree-based classification, and random forest."
-                              )
                             ),
-                            tags$li(
-                              paste0("Model evaluation: Each of the models is compared and",
-                                     "evaluated through various metrics and visualizations.")
+                            tags$li("Model evaluation: Each of the models is compared and ",
+                                     "evaluated through various metrics and visualizations."
                               
                             )
                           )
@@ -121,17 +113,17 @@ overview.page <- conditionalPanel(
           div(
             h3("Data Overview"),
             id="dataOverviewSection",
-            HTML(paste0("<p>The <code>dismo</code> package provides certain built-in", 
+            HTML("<p>The <code>dismo</code> package provides certain built-in", 
             " datasets that can be used for demonstration purposes. <i>Note that the ", 
             "built-in datasets might have been scaled or modified. E.g., the temperature", 
             " raster data used in this analysis appears to have been scaled since the", 
-            " min/max values range from about -200 to 400.</i></p>")),
+            " min/max values range from about -200 to 400.</i></p>"),
             HTML("<p>The data from the <code>dismo</code> package used in this application 
-                 includes:</p>"),
+                 include:</p>"),
             div(
               tags$ul(
                 tags$li(
-                  HTML("<p>Bradypus (Three-Toed Sloth) observations in South America: This 
+                  HTML("<p>Bradypus variegatus (Three-Toed Sloth) observations in South America: This 
                       data was obtained from the Global Biodiversity Information Facility 
                       (<a href='https://www.gbif.org/'>GBIF</a>) via the following function 
                       in R: <br><code>dismo::bradypus::gbif(\"Bradypus\", \"variegatus*\", sp=T)
@@ -142,7 +134,9 @@ overview.page <- conditionalPanel(
                     "Pseudo Absence Data: To complement the presence data for Bradypus variegatus in 
                     the study, pseudo absence points were generated. These points were spatially 
                     randomized across the same extent as the presence data, ensuring a non-overlapping
-                    distribution with the presence observations.  It's crucial to note that these points 
+                    distribution with the presence observations. The resulting pseudo absence locations 
+                    were then used to extract the bioclimatic and biome variables, in a manner analogous
+                    to the processing of presence data. It's crucial to note that these points 
                     do not represent real-world observations of the species' absence but rather serve as a
                     hypothetical baseline to aid in modeling efforts. Consequently, any interpretation
                     should be made with this context in mind."
@@ -267,9 +261,14 @@ eda.page <- conditionalPanel(
           div(
             id="edaContSection",
             div(
-              radioButtons("cont_plot_type", label="Select Visualization Type", inline=T, 
-                           choices=c( "Table", "Histogram", "Density", "Combined Plot"), 
-                           selected="Table"),
+              div(
+                id="edaContRadio",
+                radioButtons("select_data_filter_cont", label="Select Data", inline=T, 
+                             choices=c("Presence", "Absence", "All"), selected="All"),
+                radioButtons("cont_plot_type", label="Select Visualization Type", inline=T, 
+                             choices=c( "Table", "Histogram", "Density", "Combined Plot"), 
+                             selected="Table")
+              ),
               conditionalPanel(
                 style="min-width:600px; margin-top:15px; margin-left:15px;",
                 "input.cont_plot_type == 'Table'",

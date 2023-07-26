@@ -127,13 +127,14 @@ a {
     overflow-x: scroll !important;
   }
 
-#select_data_filter, #cont_plot_type {
+#select_data_filter, #cont_plot_type, #select_data_filter_cont {
     display: flex !important;
     align-items: left !important;
     margin-left: 15px !important;
 }
 
-#select_data_filter .shiny-options-group, #cont_plot_type .shiny-options-group {
+#select_data_filter .shiny-options-group, #cont_plot_type .shiny-options-group,
+#select_data_filter_cont .shiny-options-group {
   margin-left: 10px !important;
 }
 
@@ -233,7 +234,7 @@ a {
     margin-top: 4px !important;
   }
   
-  #cont_plot_type {
+  #edaContRadio, {
     overflow-x:scroll !important;
   }
 }

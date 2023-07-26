@@ -102,22 +102,27 @@ server <- function(input, output, session) {
   
   
   # Continuous Data
-  cont.data <- cont.eda(df, "All", "Table")
-  cont.datatable <- format.datatable(cont.data, signif=4, searching=F, 
-                                     font.size="17px", page.length=nrow(cont.data))
   updateSelectInput(session=session,
                     inputId="continuous_var", 
                     choices=c(names(df)[!(names(df) %in% c("presence", "biome"))], "All"))
   
-  observeEvent(c(input$edaTabs, input$cont_plot_type), {
+  observeEvent(c(input$edaTabs, input$cont_plot_type, input$select_data_filter_cont), {
     if (input$edaTabs == "Continuous Data") {
+      if (input$select_data_filter_cont != "All") {
+        cont.data <- df %>%
+          filter(presence == ifelse(input$select_data_filter_cont == "Presence", 1, 0))
+      } else cont.data <- df
+      
       # Table
       if (input$cont_plot_type != "Table") {
-        output$cont_plot <- renderPlot(cont.eda(df, input$continuous_var, 
+        output$cont_plot <- renderPlot(cont.eda(cont.data, input$continuous_var, 
                                                 input$cont_plot_type), width=800)
         output$cont_table <- NULL
       } else {
         output$cont_plot <- NULL
+        summary.table <- cont.eda(cont.data, "All", "Table")
+        cont.datatable <- format.datatable(summary.table, signif=4, searching=F, 
+                                           font.size="17px", page.length=nrow(summary.table))
         output$cont_table <- renderDT(cont.datatable)
       }
       # Plot
