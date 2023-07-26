@@ -68,7 +68,7 @@ overview.page <- conditionalPanel(
                     " and downloading the data for external analyses.")
                   ),
                   tags$li("Basic exploratory analysis: In this part of the application, the user 
-                       is able to gain a deeper understanding of the data itself, as well as the
+                       is able to gain a deeper understanding of the observation data, as well as the
                        distribution of the variables used within the modeling process."),
                   tags$li(paste0("Modeling the data: This part of the app includes several",
                                 " key components:"),
@@ -136,6 +136,17 @@ overview.page <- conditionalPanel(
                       (<a href='https://www.gbif.org/'>GBIF</a>) via the following function 
                       in R: <br><code>dismo::bradypus::gbif(\"Bradypus\", \"variegatus*\", sp=T)
                       </code></p>")
+                ),
+                tags$li(
+                  p(
+                    "Pseudo Absence Data: To complement the presence data for Bradypus variegatus in 
+                    the study, pseudo absence points were generated. These points were spatially 
+                    randomized across the same extent as the presence data, ensuring a non-overlapping
+                    distribution with the presence observations.  It's crucial to note that these points 
+                    do not represent real-world observations of the species' absence but rather serve as a
+                    hypothetical baseline to aid in modeling efforts. Consequently, any interpretation
+                    should be made with this context in mind."
+                  )
                 ),
                 tags$li(
                   HTML("<p>The following bioclimate data is also used from the <code>dismo</code> 
