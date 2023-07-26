@@ -81,4 +81,6 @@ install.packages(c(
 
 ```
 
+Note that `rJava` also requires a 64-bit version of Java installed, along with the `JAVA_HOME` environment variable set. To install Java, see the [Oracle website](https://www.oracle.com/java/technologies/downloads/). After installation, either set the `JAVA_HOME` environment variable (e.g., using a Windows desktop run `setx PATH "C:\C:\Program Files\Java\jdk-VERSION;%PATH%"` from the command line, replacing "VERSION" with the correct version), or set it from your R environment using the `Sys.setenv()` function prior to loading the library in an R session. 
+
 
