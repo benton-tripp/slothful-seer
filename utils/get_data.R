@@ -69,11 +69,14 @@ if (.file.check$bradypus) {
 cat("Loading rasters...\n")
 # Get rasters data
 if (.file.check$rasters) {
+  cat("Reading rasters from cache...\n")
   rasters <- readRDS("data/rasters.rds")
 } else {
   files <- list.files(path=paste("data", sep=''), pattern='grd', full.names=T)
+  cat("Reading rasters from files:", paste(files, collapse=", "), "\n")
   rasters <- stack(files)
   
+  cat("Creating lat/lon rasters...\n")
   # Create a raster for longitude
   lon.raster <- rasters[[1]]
   values(lon.raster) <- xFromCell(lon.raster, seq_len(ncell(lon.raster)))
@@ -84,6 +87,7 @@ if (.file.check$rasters) {
   values(lat.raster) <- yFromCell(lat.raster, seq_len(ncell(lat.raster)))
   lat.raster[is.na(rasters[[1]])] <- NA
   
+  cat("Stacking Rasters...\n")
   rasters <- stack(rasters, lon.raster, lat.raster)
   names(rasters) <- raster.names
   
@@ -93,6 +97,7 @@ if (.file.check$rasters) {
   # Set extent to be South America
   extent(rasters) <- extent(south.america)
   
+  cat("Caching raster stack...\n")
   saveRDS(rasters, "data/rasters.rds")
 }
 
