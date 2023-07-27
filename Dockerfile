@@ -1,11 +1,14 @@
 FROM rocker/shiny:latest
 
-# Install Java and Git
-# libproj-dev needed for terra package
+# Add the UbuntuGIS repository for up-to-date spatial libraries
+RUN echo "deb http://ppa.launchpad.net/ubuntugis/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/ubuntugis.list && \
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 314DF160
+
+# Install Java, GDAL 3.0, and PROJ 6
 RUN apt-get update && apt-get install -y \
     openjdk-11-jdk \
-    libproj-dev \ 
-    git \
+    libproj-dev \
+    libgdal-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/
 
