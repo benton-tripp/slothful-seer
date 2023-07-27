@@ -82,7 +82,7 @@ There are a couple of options of how you might run the app using Docker:
 ### Building the image from the Dockerfile
 
 1. Download the Dockerfile (or clone the full app), and navigate to the directory with the file
-2. Run `docker build -t slothful-seer-app .` to create an image
+2. Run `docker build -t slothful-seer-app .` to create an image (this can take 5-10 minutes to complete)
 3. Then run `docker run --rm -p 4000:3838 slothful-seer-app` to start a container
 4. Open up a browser, navigate to [http:/127.0.0.1:4000](http:/127.0.0.1:4000)
 5. To stop, run `docker stop [CONTAINER_ID]`
