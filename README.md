@@ -87,23 +87,23 @@ install.packages(c(
 
 Note that `rJava` also requires a 64-bit version of Java installed, along with the `JAVA_HOME` environment variable set. To install Java, see the [Oracle website](https://www.oracle.com/java/technologies/downloads/). After installation, either set the `JAVA_HOME` environment variable (e.g., using a Windows desktop run `setx PATH "C:\C:\Program Files\Java\jdk-VERSION;%PATH%"` from the command line, replacing "VERSION" with the correct version), or set it from your R environment using the `Sys.setenv()` function prior to loading the library in an R session. 
 
-### Running the application using Docker
+## Running the application using Docker
 
-A Dockerfile has been included in this repository as an alternative to running the application locally after installing the required packages (and Java). This is a good alternative if package versions and/or Java are giving you grief.
+A Dockerfile has been included in this repository as an alternative to running the application locally after installing the required packages (and Java). This is a good alternative if package versions and/or Java are giving you grief. I have also occasionally had difficulty getting all of the GIS packages (`rgdal`, `sp`, `sf`, `raster`, `dismo`, etc.) to install/work without any errors.
 
 There are a couple of options of how you might run the app using Docker:
 
 1. Pull the image from Docker Hub (easier/faster method)
 2. Build the image from the Dockerfile included in this repository
 
-#### Pulling the image from Docker Hub
+### Pulling the image from Docker Hub
 
 1. Run `docker pull bentontripp/slothful-seer-app:latest`
 2. Then run `docker run --rm -p 4000:3838 slothful-seer-app` to start a container
 3. Open up a browser, navigate to [http:/127.0.0.1:4000](http:/127.0.0.1:4000)
 4. To stop, run `docker stop [CONTAINER_ID]`
 
-#### Building the image from the Dockerfile
+### Building the image from the Dockerfile
 
 1. Download the Dockerfile (or clone the full app), and navigate to the directory with the file
 2. Run `docker build -t slothful-seer-app .` to create an image
