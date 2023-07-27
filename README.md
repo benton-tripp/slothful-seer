@@ -65,7 +65,7 @@ Note that `rJava` also requires a 64-bit version of Java installed, along with t
 
 ## Running the application using Docker
 
-A Dockerfile has been included in this repository as an alternative to running the application locally after installing the required packages (and Java). This is a good alternative if package versions and/or Java are giving you grief. I have also occasionally had difficulty getting all of the GIS packages (`rgdal`, `sp`, `sf`, `raster`, `dismo`, etc.) to install/work without any errors.
+A Docker can be used as an alternative to running the application from R locally. This is a good alternative if package versions and/or Java are giving you grief. The GIS packages (`rgdal`, `sp`, `sf`, `raster`, `dismo`, etc.) can be especially troublesome to install without any errors, depending on the OS and R version.
 
 There are a couple of options of how you might run the app using Docker:
 
