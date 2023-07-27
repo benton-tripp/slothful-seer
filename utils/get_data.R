@@ -1,3 +1,4 @@
+cat("Loading data...\n")
 
 .file.check <- list(
   bradypus = file.exists("data/bradypus.rds"),
@@ -29,6 +30,7 @@ create.binary.raster <- function(biome.value, biome.categories, .ras, rasters) {
   return(binary.raster)
 }
 
+cat("Loading world map...\n")
 # Load South America data
 data("wrld_simpl")
 south.america <- subset(wrld_simpl, wrld_simpl$SUBREGION==5 | wrld_simpl$SUBREGION==13)
@@ -47,6 +49,7 @@ raster.names <- c(
   "lat"
 ) 
 
+cat("Loading bradypus data...\n")
 # Get sloth data
 if (.file.check$bradypus) {
   bradypus <- readRDS("data/bradypus.rds")
@@ -62,6 +65,8 @@ if (.file.check$bradypus) {
   bradypus <- sp::spTransform(bradypus, CRS=crs(south.america))
   saveRDS(bradypus, "data/bradypus.rds")
 }
+
+cat("Loading rasters...\n")
 # Get rasters data
 if (.file.check$rasters) {
   rasters <- readRDS("data/rasters.rds")
@@ -95,14 +100,20 @@ if (.file.check$rasters) {
 biome.categories <- unique(values(rasters$biome))
 biome.categories <- biome.categories[!is.na(biome.categories)]
 
+cat("Biome categories:", paste(biome.categories, collapse=", "), "\n")
+cat("Creating binary rasters from biome raster...\n")
+
 # Get binary rasters
 if (.file.check$binary.rasters) {
   binary.rasters <- readRDS("data/binary.rasters.rds")
 } else {
   # Apply the function to each biome category
   binary.rasters <- map(biome.categories, 
-                        ~create.binary.raster(.x, biome.categories, 
-                                              rasters$biome, rasters))
+                        function(.x) {
+                          cat("Creating raster for", .x, "biome...\n")
+                          create.binary.raster(.x, biome.categories, 
+                                               rasters$biome, rasters)
+                        })
   
   # Name the rasters
   names(binary.rasters) <- paste0("biome", biome.categories)
@@ -120,6 +131,7 @@ if (.file.check$binary.rasters) {
   saveRDS(binary.rasters, "data/binary.rasters.rds")
 }
 
+cat("Getting presence data...\n")
 # Presence values
 if (.file.check$presence) {
   presence.df <- readRDS("data/presence.df.rds")
@@ -145,6 +157,7 @@ sp.presence <- presence.df %>%
   sp::SpatialPointsDataFrame(coords = .[, c("lon", "lat")], 
                              data = ., proj4string = CRS(sp::proj4string(bradypus)))
 
+cat("Getting absence data...\n")
 # Create random points on cells of the environmental rasters within the 
 # extent of bradypus, and avoiding cells containing points from bradypus;
 # These will be used as pseudo-absence points
@@ -187,3 +200,5 @@ binary.rasters <- raster::crop(binary.rasters, buffered.extent)
 
 # Combine presence data with pseudo-absence data
 df <- rbind(presence.df, pseudo.absence.df) %>% arrange(presence)
+
+cat("Completed data loading process\n")
