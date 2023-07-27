@@ -25,6 +25,7 @@ the required packages is installed:
 - `shinyjs`
 - `shinydashboard`
 - `shinybusy`
+- `DT`
 - `tidyverse`
 - `dismo`
 - `maptools`
@@ -55,6 +56,7 @@ install.packages(c(
   "shinyjs",
   "shinydashboard",
   "shinybusy",
+  "DT",
   "tidyverse",
   "dismo",
   "maptools",
