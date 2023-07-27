@@ -91,7 +91,19 @@ Note that `rJava` also requires a 64-bit version of Java installed, along with t
 
 A Dockerfile has been included in this repository as an alternative to running the application locally after installing the required packages (and Java). This is a good alternative if package versions and/or Java are giving you grief.
 
-To run the app using docker:
+There are a couple of options of how you might run the app using Docker:
+
+1. Pull the image from Docker Hub (easier/faster method)
+2. Build the image from the Dockerfile included in this repository
+
+#### Pulling the image from Docker Hub
+
+1. Run `docker pull bentontripp/slothful-seer-app:latest`
+2. Then run `docker run --rm -p 4000:3838 slothful-seer-app` to start a container
+3. Open up a browser, navigate to [http:/127.0.0.1:4000](http:/127.0.0.1:4000)
+4. To stop, run `docker stop [CONTAINER_ID]`
+
+#### Building the image from the Dockerfile
 
 1. Download the Dockerfile (or clone the full app), and navigate to the directory with the file
 2. Run `docker build -t slothful-seer-app .` to create an image

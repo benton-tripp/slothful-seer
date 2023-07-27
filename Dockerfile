@@ -55,13 +55,14 @@ CMD ["R", "-e", "shiny::runGitHub('benton-tripp/slothful-seer', host = '0.0.0.0'
 
 # HELPFUL COMMANDS
 
+# docker ps
 # docker stop [CONTAINER_ID]
 
 # docker rmi slothful-seer-app -f
 
 # docker save -o slothful-seer-app.tar slothful-seer-app
-# gzip /path/to/save/image_name.tar
-# gunzip -c /path/to/save/image_name.tar.gz | docker load
+# gzip slothful-seer-app.tar
+# gunzip -c slothful-seer-app.tar.gz | docker load
 
 
 # NOT IN USE
