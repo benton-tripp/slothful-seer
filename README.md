@@ -75,7 +75,7 @@ There are a couple of options of how you might run the app using Docker:
 ### Pulling the image from Docker Hub
 
 1. Run `docker pull bentontripp/slothful-seer-app:latest`
-2. Then run `docker run --rm -p 4000:3838 slothful-seer-app` to start a container
+2. Then run `docker run --rm -p 4000:3838 bentontripp/slothful-seer-app:latest` to start a container
 3. Open up a browser, navigate to [http:/127.0.0.1:4000](http:/127.0.0.1:4000)
 4. To stop, run `docker stop [CONTAINER_ID]`
 
