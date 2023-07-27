@@ -1,22 +1,20 @@
 FROM rocker/shiny:latest
 
-# Add the UbuntuGIS repository for up-to-date spatial libraries
-RUN echo "deb http://ppa.launchpad.net/ubuntugis/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/ubuntugis.list && \
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 314DF160
-
-# Install Java, GDAL 3.0, and PROJ 6
+# Install Java, GDAL 3.0, PROJ 6, and Units
 RUN apt-get update && apt-get install -y \
     openjdk-11-jdk \
     libproj-dev \
     libgdal-dev \
+    libudunits2-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/
+
 
 # Set the JAVA_HOME environment variable
 ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64
 
 # Install required R packages
-RUN install2.r \
+RUN install2.r --error --deps TRUE \
     shinyjs \
     shinydashboard \
     shinybusy \

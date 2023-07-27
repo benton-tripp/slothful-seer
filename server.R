@@ -1,25 +1,30 @@
 # Options
 options("rgdal_show_exportToProj4_warnings"="none")
 
+cat("Loading libraries...\n")
 # Load libraries
 purrr::walk(
   c("shiny", "dismo", "sp", "maptools", "tidyverse", "ggpubr", "shinyjs", "skimr",
     "leaflet", "leaflet.extras", "raster", "spatstat", "caret", "DT", "rJava"), 
   function(.x) {
+    cat("Loading the", .x, "library...\n")
     suppressWarnings(suppressPackageStartupMessages(library(.x, character.only=T)))
-    cat("Loaded the", .x, "library\n")
 })
 
 # Set seed for reproducibility
 set.seed(19)
 
 
+cat("Sourcing modules...\n")
 # Source utility functions (e.g., get_data.R loads the data)
 .utils <- file.path("utils", list.files("utils"))
-walk(.utils[.utils != "utils/modeling_info_sidebar.R"], ~source(.x)) %>% suppressWarnings()
+walk(.utils[.utils != "utils/modeling_info_sidebar.R"], function(.x) {
+  cat("Sourcing", .x, "...\n")
+  source(.x)
+}) %>% suppressWarnings()
 
 server <- function(input, output, session) {
-  
+  cat("Initializing Server...\n")
   ### Data Overview ###############################
   
   # Data
@@ -802,5 +807,6 @@ server <- function(input, output, session) {
   
   # After everything is loaded, send a message to hide the loading screen
   session$sendCustomMessage(type = 'hideLoadingScreen', message = 'hide')
+  cat("Application load successful!\n")
 }
 
