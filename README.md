@@ -7,7 +7,7 @@ A Shiny app for estimating the distribution of the three-toed sloth 🦥🌳🔍
 
 The *Slothful Seer* Shiny application is a tool developed to assist in understanding the distribution patterns of the three-toed sloth. It provides an interface for exploring observation data of the species in question, as well as other relevant data such as environmental factors and eco-regions. Utilizing machine learning and statistical models, this application utilizes the various data sources to predict the distribution of the species across the study area.
 
-## Running the application
+## Running the application locally
 
 The app can be run from an R console (e.g., RStudio) either by cloning this repository, or running the app locally by directly connecting to Github through the `shiny::runGitHub()` function as demonstrated below.
 
@@ -47,6 +47,7 @@ the required packages is installed:
 - `Matrix`
 - `sp`
 - `sf`
+- `rgdal`
 
 ```{r}
 
@@ -77,7 +78,8 @@ install.packages(c(
   "glmnet",
   "Matrix",
   "sp",
-  "sf"
+  "sf",
+  "rgdal"
 ))
 
 
@@ -85,4 +87,15 @@ install.packages(c(
 
 Note that `rJava` also requires a 64-bit version of Java installed, along with the `JAVA_HOME` environment variable set. To install Java, see the [Oracle website](https://www.oracle.com/java/technologies/downloads/). After installation, either set the `JAVA_HOME` environment variable (e.g., using a Windows desktop run `setx PATH "C:\C:\Program Files\Java\jdk-VERSION;%PATH%"` from the command line, replacing "VERSION" with the correct version), or set it from your R environment using the `Sys.setenv()` function prior to loading the library in an R session. 
 
+### Running the application using Docker
+
+A Dockerfile has been included in this repository as an alternative to running the application locally after installing the required packages (and Java). This is a good alternative if package versions and/or Java are giving you grief.
+
+To run the app using docker:
+
+1. Download the Dockerfile (or clone the full app), and navigate to the directory with the file
+2. Run `docker build -t slothful-seer-app .` to create an image
+3. Then run `docker run --rm -p 4000:3838 slothful-seer-app` to start a container
+4. Open up a browser, navigate to [http:/127.0.0.1:4000](http:/127.0.0.1:4000)
+5. To stop, run `docker stop [CONTAINER_ID]`
 

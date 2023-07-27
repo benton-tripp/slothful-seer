@@ -1,8 +1,10 @@
 FROM rocker/shiny:latest
 
 # Install Java and Git
+# libproj-dev needed for terra package
 RUN apt-get update && apt-get install -y \
     openjdk-11-jdk \
+    libproj-dev \ 
     git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/
@@ -36,18 +38,25 @@ RUN install2.r \
     glmnet \
     Matrix \
     sp \
-    sf
+    sf \
+    rgdal
 
 # Make the Shiny app available at port 3838
 EXPOSE 3838
 
 CMD ["R", "-e", "shiny::runGitHub('benton-tripp/slothful-seer', host = '0.0.0.0', port = 3838)"]
 
-# HELPFUL COMMANDS
+
 
 # docker build -t slothful-seer-app .
-# docker run --rm -p 3838:3838 slothful-seer-app
+# docker run --rm -p 4000:3838 slothful-seer-app
+# Open up a browser, navigate to http:/127.0.0.1:4000
+
+# HELPFUL COMMANDS
+
 # docker stop [CONTAINER_ID]
+
+# docker rmi slothful-seer-app -f
 
 # docker save -o slothful-seer-app.tar slothful-seer-app
 # gzip /path/to/save/image_name.tar
