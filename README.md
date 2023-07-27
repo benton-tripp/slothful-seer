@@ -53,35 +53,11 @@ the required packages is installed:
 
 # Install required libraries
 install.packages(c(
-  "shiny",
-  "shinyjs",
-  "shinydashboard",
-  "shinybusy",
-  "DT",
-  "tidyverse",
-  "dismo",
-  "maptools",
-  "ggpubr",
-  "rJava",
-  "skimr",
-  "leaflet",
-  "leaflet.extras",
-  "raster",
-  "spatstat",
-  "caret",
-  "gbm",
-  "plyr",
-  "caTools",
-  "rpart",
-  "e1071",
-  "ranger",
-  "glmnet",
-  "Matrix",
-  "sp",
-  "sf",
-  "rgdal"
+  "shiny", "shinyjs", "shinydashboard", "shinybusy", "DT", "tidyverse",
+  "dismo", "maptools", "ggpubr", "rJava", "skimr", "leaflet", "leaflet.extras",
+  "raster", "spatstat", "caret", "gbm", "plyr", "caTools", "rpart", "e1071",
+  "ranger", "glmnet", "Matrix", "sp", "sf", "rgdal"
 ))
-
 
 ```
 
