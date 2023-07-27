@@ -98,7 +98,7 @@ if (.file.check$rasters) {
   extent(rasters) <- extent(south.america)
   
   cat("Caching raster stack...\n")
-  saveRDS(rasters, "data/rasters.rds")
+  saveRDS(readAll(rasters), "data/rasters.rds")
 }
 
 # Get unique biome categories
@@ -133,7 +133,7 @@ if (.file.check$binary.rasters) {
   # Check for all NA values
   # any(purrr::map_lgl(seq(1,13), ~all(is.na(as.matrix(binary.rasters[[.x]])))))
   
-  saveRDS(binary.rasters, "data/binary.rasters.rds")
+  saveRDS(readAll(binary.rasters), "data/binary.rasters.rds")
 }
 
 cat("Getting presence data...\n")
