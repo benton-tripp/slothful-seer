@@ -903,8 +903,8 @@ model.page <- conditionalPanel(
                 id="modelFittingTree",
                 div(
                   style="padding:10px; padding-left:0; padding-top:0; max-width:250px;",
-                  h3("Classification Tree"),
-                  tags$i("Description")
+                  h3("Classification Tree")
+                  #, tags$i("Description")
                 ),
                 
                 # Params: cp
@@ -957,8 +957,8 @@ model.page <- conditionalPanel(
                 id="modelFittingForest",
                 div(
                   style="padding:10px; padding-left:0; padding-top:0; max-width:365px;",
-                  h3("Random Forest"),
-                  tags$i("Description")
+                  h3("Random Forest")
+                  # ,tags$i("Description")
                 ),
                 div(
                   style="max-width:210px; ",

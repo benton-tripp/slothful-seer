@@ -219,9 +219,6 @@ server <- function(input, output, session) {
     updateNumericInput(session, "min_node_2", value = prevVals$min.node.2)
     updateNumericInput(session, "mtry_3", value = prevVals$mtry.3)
     updateNumericInput(session, "min_node_3", value = prevVals$min.node.3)
-    
-    # Reset train/test split data
-    # TODO: You might need additional code/logic to reset train/test split data
   })
   
   observeEvent(input$reset_model_updates, {
@@ -244,22 +241,41 @@ server <- function(input, output, session) {
     updateNumericInput(session, "min_node_2", value = NA)
     updateNumericInput(session, "mtry_3", value = NA)
     updateNumericInput(session, "min_node_3", value = NA)
-    
-    # Reset train/test split data
-    # TODO: You might need additional code/logic to reset train/test split data
   })
   
   model.vars <- reactive({
     if (input$modelTabs == "Model Fitting") {
-      if (any(purrr::map_lgl(
-        c(input$split_perc, input$k_folds, input$glm_alpha_1, 
-          input$glm_lambda_1, input$start_cp, input$range_cp, 
-          input$step_cp, input$mtry_1, input$min_node_1),
-        ~(is.null(.x) | is.na(.x) | !is.numeric(.x))
-      )) | is.null(input$split_rule)) {
-        showNotification(tags$span("One or more of the required values is missing"), type="error")
+      required_inputs <- c(input$split_perc, input$k_folds, input$glm_alpha_1, 
+                           input$glm_lambda_1, input$start_cp, input$range_cp, 
+                           input$step_cp, input$mtry_1, input$min_node_1)
+      # Check for missing or non-numeric values
+      if (any(purrr::map_lgl(required_inputs, 
+                             ~(is.null(.x) | is.na(.x) | !is.numeric(.x)))) | is.null(input$split_rule)) {
+        showNotification(tags$span("One or more of the required values is missing or invalid"), 
+                         type="error")
         return(NULL)
       } 
+      # Check for valid ranges/values
+      else if (input$split_perc <= 0 | input$split_perc > 1 | 
+               input$k_folds <= 0 | !is.integer(input$k_folds) |
+               any(purrr::map_lgl(c(input$glm_alpha_1, input$glm_alpha_2, input$glm_alpha_3)[
+                 !is.na(c(input$glm_alpha_1, input$glm_alpha_2, input$glm_alpha_3))], 
+                                  ~(.x < 0 | .x > 1))) |
+               any(purrr::map_lgl(c(input$glm_lambda_1, input$glm_lambda_2, input$glm_lambda_3)[
+                 !is.na(c(input$glm_lambda_1, input$glm_lambda_2, input$glm_lambda_3))], 
+                                  ~.x < 0)) |
+               input$start_cp < 0 | input$step_cp <= 0 | input$range_cp <= 0 |
+               any(purrr::map_lgl(c(input$mtry_1, input$mtry_2, input$mtry_3)[
+                 !is.na(c(input$mtry_1, input$mtry_2, input$mtry_3))], 
+                                  ~(.x <= 0 | !is.integer(.x)))) |
+               any(purrr::map_lgl(c(input$min_node_1, input$min_node_2, input$min_node_3)[
+                 !is.na(c(input$min_node_1, input$min_node_2, input$min_node_3))], 
+                                  ~(.x <= 0 | !is.integer(.x))))) {
+        showNotification(tags$span("One or more values is out of the expected range"), 
+                         type="error")
+        return(NULL)
+      }
+      
       # Prepare Data
       prepared.data <- tryCatch(prepare.data(df, input$split_perc), 
                                 error = function(e) {
