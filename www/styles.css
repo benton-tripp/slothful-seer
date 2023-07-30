@@ -65,8 +65,8 @@ html {
 }
 
 .shiny-row {
-  display:flex !important;
-  flex-direction:row !important;
+  display: flex !important;
+  flex-direction: row !important;
 }
 
 
@@ -157,6 +157,10 @@ a {
 
 .model-overview-page {
   margin-left:65px !important
+}
+
+.model-overview-page h5 {
+  font-size: 21px !important;
 }
 
 .model-overview-page h4 {

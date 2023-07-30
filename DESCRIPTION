@@ -1,0 +1,41 @@
+Package: slothful-seer
+Title: Modeling the Distribution of the Three-Toed Sloth
+Version: 1.0
+Authors@R: person("Benton", "Tripp", email = "btripp@ncsu.edu", role = c("aut", "cre"))
+Description: 
+  This Shiny application is a tool developed to assist in understanding the distribution patterns of 
+  the three-toed sloth. It provides an interface for exploring observation data of the species in question, 
+  as well as other relevant data such as environmental factors and eco-regions. Utilizing machine learning 
+  and statistical models, this application utilizes the various data sources to predict the distribution of 
+  the species across the study area.
+Depends:
+      shiny
+      shinyjs
+      shinydashboard
+      shinybusy
+      DT
+      tidyverse
+      dismo
+      maptools
+      ggpubr
+      rJava
+      skimr
+      leaflet
+      leaflet.extras
+      raster
+      spatstat
+      caret
+      gbm
+      plyr
+      caTools
+      rpart
+      e1071
+      ranger
+      glmnet
+      Matrix
+      sp
+      sf
+      rgdal
+      htmlwidgets
+      rgeos
+      shinyWidgets

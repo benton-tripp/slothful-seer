@@ -61,7 +61,7 @@ overview.page <- conditionalPanel(
                     "This type of model is commonly used in the fields of ", 
                     "biology and ecology, and is called <i>presence-only", 
                     "</i> modeling, (since the data only entails observations ",
-                    "of a species presence, and not the inverse). The contents ", 
+                    "of a species' presence, and not the inverse). The contents ", 
                     "of the app include:</p>"
                 ),
                 tags$ul(
@@ -90,7 +90,7 @@ overview.page <- conditionalPanel(
                                 "model based on its performance."
                             ),
                             tags$li(
-                                "Baseline models: Inhomogeneous Poisson Process (IPP) model ",
+                                "Baseline models: Inhomogeneous Poisson Process (IPP) ",
                                 "and Maximum Entropy (MaxEnt) models serve as \"baseline\" ",
                                 " models, given their frequent usage in presence-only ",
                                 "prediction problems."
@@ -103,7 +103,10 @@ overview.page <- conditionalPanel(
                             ),
                             tags$li("Model evaluation: Each of the models is compared and ",
                                      "evaluated through various metrics and visualizations."
-                              
+                            ),
+                            tags$li("Prediction: An interactive interface is provided for the ",
+                                    "user to generate predictions based on a selected point on a map."
+                                    
                             )
                           )
                   )
@@ -128,22 +131,23 @@ overview.page <- conditionalPanel(
               tags$ul(
                 tags$li(
                   HTML("<p>Bradypus variegatus (Three-Toed Sloth) observations in South America: This 
-                      data was obtained from the Global Biodiversity Information Facility 
-                      (<a href='https://www.gbif.org/'>GBIF</a>) via the following function 
-                      in R: <br><code>dismo::bradypus::gbif(\"Bradypus\", \"variegatus*\", sp=T)
-                      </code></p>")
+                      data was originally obtained from the Global Biodiversity Information Facility 
+                      (<a href='https://www.gbif.org/'>GBIF</a>), and can be downloaded using the 
+                      following function in R: 
+                      <br>
+                      <code>dismo::bradypus::gbif(\"Bradypus\", \"variegatus*\", sp=T)</code></p>")
                 ),
                 tags$li(
                   p(
                     "Pseudo Absence Data: To complement the presence data for Bradypus variegatus in 
-                    the study, pseudo absence points were generated. These points were spatially 
-                    randomized across the same extent as the presence data, ensuring a non-overlapping
-                    distribution with the presence observations. The resulting pseudo absence locations 
-                    were then used to extract the bioclimatic and biome variables, in a manner analogous
-                    to the processing of presence data. It's crucial to note that these points 
-                    do not represent real-world observations of the species' absence but rather serve as a
-                    hypothetical baseline to aid in modeling efforts. Consequently, any interpretation
-                    should be made with this context in mind."
+                    the study, pseudo absence points were generated for this application. These points 
+                    were spatially randomized across the same extent as the presence data, ensuring a 
+                    non-overlapping distribution with the presence observations. The resulting pseudo 
+                    absence locations were then used to extract the bioclimatic and biome variables, in 
+                    a manner analogous to the processing of presence data. It's crucial to note that 
+                    these points do not represent real-world observations of the species' absence but 
+                    rather serve as a hypothetical baseline to aid in modeling efforts. Consequently,
+                    any interpretation should be made with this context in mind."
                   )
                 ),
                 tags$li(
@@ -151,31 +155,40 @@ overview.page <- conditionalPanel(
                          package: </p>"),
                   tags$ul(
                     tags$li(
-                      HTML("<p>Mean annual temperature (<i>bio1</i>)</p>")
+                      HTML("<p><code>mean.temp</code>: 
+                           Mean annual temperature (<i>bio1</i>)</p>")
                     ),
                     tags$li(
-                      HTML("<p>Max temperature of warmest month (<i>bio5</i>)</p>")
+                      HTML("<p><code>max.temp</code>: 
+                           Max temperature of warmest month (<i>bio5</i>)</p>")
                     ),
                     tags$li(
-                      HTML("<p>Min temperature of coldest month (<i>bio6</i>)</p>")
+                      HTML("<p><code>min.temp</code>: 
+                           Min temperature of coldest month (<i>bio6</i>)</p>")
                     ),
                     tags$li(
-                      HTML("<p>Temperature annual range (<i>bio7</i>)</p>")
+                      HTML("<p><code>temp.rng</code>: 
+                           Temperature annual range (<i>bio7</i>)</p>")
                     ),
                     tags$li(
-                      HTML("<p>Mean temperature of the wettest quarter (<i>bio8</i>)</p>")
+                      HTML("<p><code>mean.tmp.wet.qrtr</code>: 
+                           Mean temperature of the wettest quarter (<i>bio8</i>)</p>")
                     ),
                     tags$li(
-                      HTML("<p>Total (annual) precipitation (<i>bio12</i>)</p>")
+                      HTML("<p><code>prec.annual</code>: 
+                           Total (annual) precipitation (<i>bio12</i>)</p>")
                     ),
                     tags$li(
-                      HTML("<p>Precipitation of wettest quarter (<i>bio16</i>)</p>")
+                      HTML("<p><code>prec.wet.qrtr</code>: 
+                           Precipitation of wettest quarter (<i>bio16</i>)</p>")
                     ),
                     tags$li(
-                      HTML("<p>Precipitation of driest quarter (<i>bio17</i>)</p>")
+                      HTML("<p><code>prec.dry.qrtr</code>: 
+                           Precipitation of driest quarter (<i>bio17</i>)</p>")
                     ),
                     tags$li(
-                      HTML(paste0("<p>Terrestrial Eco-regions (Biomes) of the world,",
+                      HTML(paste0("<p><code>biome</code>: 
+                          Terrestrial Eco-regions (Biomes) of the world,",
                          " by the World Wildlife Fund (<i>biome</i>). See ",
                          "<a href='https://www.worldwildlife.org/publications",
                          "/terrestrial-ecoregions-of-the-world'>this publication</a>",
@@ -375,13 +388,14 @@ model.page <- conditionalPanel(
                       h4("Splitting the Data into Train/Test Sets"),
                       p(
                         "The process of partitioning the dataset into training and testing subsets",
-                        "is a crucial step in model evaluation. A stratified sampling approach is",
-                        "employed to ensure that both subsets are representative of the overall data",
-                        "distribution, especially in terms of spatial and categorical variables."
+                        "is a crucial step in model training and  evaluation. A stratified sampling ",
+                        "approach is employed in this application to ensure that both subsets are",
+                        " representative of the overall data distribution, especially in terms of ", 
+                        "spatial and categorical variables."
                       )
                     ),
                     div(
-                      h4("Spatial Stratification"),
+                      h5("Spatial Stratification"),
                       p(
                         "The dataset is divided into grids based on latitude and longitude values.",
                         " This spatial stratification ensures that the train/test split is",
@@ -390,7 +404,7 @@ model.page <- conditionalPanel(
                       )
                     ),
                     div(
-                      h4("Categorical Stratification"),
+                      h5("Categorical Stratification"),
                       p(
                         "In addition to spatial stratification, the data is further stratified based on",
                         "categorical variables, specifically the different biomes (eco-regions). This ",
@@ -399,7 +413,7 @@ model.page <- conditionalPanel(
                       )
                     ),
                     div(
-                      h4("Stratified Target"),
+                      h5("Stratified Target"),
                       p(
                         "The target variable (presence) is also used to further stratify the data. ",
                         "This ensures that the train and test sets have approximately the same ",
@@ -410,7 +424,7 @@ model.page <- conditionalPanel(
                       )
                     ),
                     div(
-                      h4("Data Partitioning"),
+                      h5("Data Partitioning"),
                       p(
                         "Once stratification is complete, the data is partitioned into training and",
                         "testing sets based on a user-specified proportion, \"Split %\"."
@@ -420,8 +434,7 @@ model.page <- conditionalPanel(
                       h3("Model Training"),
                       div( 
                         p(
-                          "The model training phase is pivotal in the development",
-                          "of predictive models. For the purpose of this application,",
+                          "For the purpose of this application,",
                           "two baseline models, IPP and MaxEnt, are trained without",
                           "any user-defined parameters. These models serve as reference",
                           "points for comparison against user-defined models, given their",
@@ -441,19 +454,21 @@ model.page <- conditionalPanel(
                           "The IPP (Inhomogeneous Poisson Process) model is another method",
                           "used for presence-only predictions. The model is trained using the", 
                           tags$code("spatstat"), " package. The process involves converting",
-                          "the data into a point pattern object (", tags$code("ppp"), ") and then",
-                          "fitting the IPP model using environmental covariates. The covariates",
+                          HTML(paste0("the data into a point pattern object (", tags$code("ppp"), ")")),
+                          " and then fitting the IPP model using environmental covariates. The covariates",
                           "are represented as raster images, and the model formula is dynamically",
                           "constructed based on the available rasters."
                         ),
-                        tags$span(class="math inline", 
-                                  HTML("\\( locations \\sim covariate_1 + covariate_2 + \\ldots \\)")),
                         p(
-                          "This formula represents the relationship between the locations and",
+                          "The formula below represents the relationship between the locations and",
                           "the environmental covariates. The IPP model is then fitted using the", 
                           tags$code("ppm"), " function, with the constructed formula and raster",
-                          "images as covariates."
+                          "images as covariates:"
                         ),
+                        p(tags$span(class="math inline", 
+                                  HTML("\\( locations \\sim covariate_1 + covariate_2 + \\ldots \\)")
+                                  )
+                          ),
                         p(
                           "Beyond the baseline models, this application also facilitates",
                           "the training of three user-defined models: GLM (Logistic Regression),",
@@ -461,7 +476,7 @@ model.page <- conditionalPanel(
                           "based on user input and are designed to provide more flexibility",
                           "and specificity in predictions.",
                           "To ensure robustness and generalizability, each of these models",
-                          "is trained using k-fold cross-validation. The value of ",
+                          "are trained using k-fold cross-validation. The value of ",
                           tags$span(class="math inline", HTML("\\( k \\)")),
                           ' "Cross-Validation Folds"',
                           "is user-defined, allowing for a customizable validation approach.",
@@ -488,7 +503,7 @@ model.page <- conditionalPanel(
                     class="model-overview-page",
                     h3("Inhomogeneous Poisson Process (IPP)"),
                     p("An Inhomogeneous Poisson Process (IPP) model is a statistical model used ",
-                      "for events that occur randomly over space or time. Unlike a regular Poisson ",
+                      "to model events that occur randomly over space or time. Unlike a regular Poisson ",
                       "process, the rate of event occurrence in an IPP can vary. IPP models are ",
                       "often used in presence-only problems to model the intensity of events ",
                       "across different locations or times. The IPP can be defined as:"
@@ -498,12 +513,13 @@ model.page <- conditionalPanel(
                       " is the total number of events, and ", tags$span(class="math inline", 
                                                                         HTML("\\(g(x)\\)")),
                       " is the density function."),
-                    tags$i("In the case of the IPP model in this ",
+                    p(tags$i("In the case of the IPP model in this ",
                            "application, the intensity ", 
                            tags$span(class="math inline", HTML("\\(\\lambda\\)")),
                            "is not a constant, but is a function of the location and covariates ",
                            tags$span(class="math inline", HTML("\\(x\\)")),
-                           ". Hence the term ‘inhomogeneous’."),
+                           ". Hence the term ‘inhomogeneous’.")
+                      ),
                     p("By fitting an IPP to presence-only data, we estimate the underlying 
                   intensity function ", tags$span(class="math inline", 
                                                   HTML("\\(\\lambda(x)\\)")),
@@ -1090,67 +1106,72 @@ model.page <- conditionalPanel(
               style="min-height:500px; margin:15px; overflow-x:scroll; 
                      border: 0 solid #888; display: flex; justify-content: center; 
                      align-items: center; position:relative;",
-                div(
-                  id="spinnerContainer",
-                  shinybusy::add_busy_spinner(spin = "circle")
-                ),
-                conditionalPanel(
-                  condition="input.viz_preds == 'Model Metrics'",
-                  style="max-width:600px; min-height:500px; min-width:150px;",
-                  DTOutput("metric_table")
-                ),
-                conditionalPanel(
-                  condition="input.viz_preds == 'Estimated Probability Raster'",
-                  style="min-height:500px; min-width:150px;",
-                  plotOutput("raster_estimate")
-                ),
-                conditionalPanel(
-                  condition="input.viz_preds == 'Predicted vs. Actual Map'",
-                  style="min-height:500px; min-width:150px;",
-                  plotOutput("pred_map")
-                ),
-                conditionalPanel(
-                  condition="input.viz_preds == 'Probability Density Plot'",
-                  style="min-height:500px; min-width:150px;",
-                  plotOutput("prob_density")
-                ),
-                conditionalPanel(
-                  condition="input.viz_preds == 'Bar Plot'",
-                  style="min-height:500px; min-width:150px;",
-                  plotOutput("pred_bar")
-                ),
-                conditionalPanel(
-                  condition="input.viz_preds == 'Confusion Matrix'",
-                  style="min-height:500px; min-width:150px;",
-                  uiOutput("confusion_matrix")
-                )
+              div(
+                id="spinnerContainer",
+                shinybusy::add_busy_spinner(spin = "circle")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Model Metrics'",
+                style="max-width:600px; min-height:500px; min-width:150px;",
+                DTOutput("metric_table")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Estimated Probability Raster'",
+                style="min-height:500px; min-width:150px;",
+                plotOutput("raster_estimate")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Predicted vs. Actual Map'",
+                style="min-height:500px; min-width:150px;",
+                plotOutput("pred_map")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Probability Density Plot'",
+                style="min-height:500px; min-width:150px;",
+                plotOutput("prob_density")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Bar Plot'",
+                style="min-height:500px; min-width:150px;",
+                plotOutput("pred_bar")
+              ),
+              conditionalPanel(
+                condition="input.viz_preds == 'Confusion Matrix'",
+                style="min-height:500px; min-width:150px;",
+                uiOutput("confusion_matrix")
+              )
             )
           )
         ),
         tabPanel(
           "Prediction",
           div(
-            class="shiny-row; overflow-x:scroll;",
+            style="overflow-x:scroll;",
             div(
-              div(style="max-width:300px; margin:5px;", verbatimTextOutput("hoverText")),
-              br(),
-              radioButtons("cell_select_method", "Cell Value Select Method",
-                           choices=c("Simple", "Interpolate")),
-              selectInput("select_pred_model", "Select Model",
-                          choices=c("IPP", "MaxEnt", "GLM", "Classification Tree", 
-                                    "Random Forest")),
-              selectInput("predictionCutoff_2", "Select Cutoff", 
-                          choices=seq(0.1, 0.9, by=0.1),
-                          selected=0.5)
-            ),
-            div(
-              id="predictionMapSection",
-              style="max-width: 600px; max-height:620px; margin:10px;",
-              leafletOutput("predictionMap", width=600, height=600)
-            ),
-            div(
-              h3("Results"),
-              DTOutput("predictionOutput")
+              style="display: flex; flex-direction:row;",
+              div(
+                style="flex-grow: 1; max-width:305px;",
+                div(style="max-width:300px; margin:5px;", verbatimTextOutput("hoverText")),
+                br(),
+                radioButtons("cell_select_method", "Cell Value Select Method",
+                             choices=c("Simple", "Interpolate")),
+                selectInput("select_pred_model", "Select Model",
+                            choices=c("IPP", "MaxEnt", "GLM", "Classification Tree", 
+                                      "Random Forest")),
+                selectInput("predictionCutoff_2", "Select Cutoff", 
+                            choices=seq(0.1, 0.9, by=0.1),
+                            selected=0.5)
+              ),
+              div(
+                id="predictionMapSection",
+                style="flex-grow: 1; max-width: 600px; max-height:620px; margin:10px;",
+                leafletOutput("predictionMap", width=600, height=600)
+              ),
+              div(
+                style="flex-grow: 1; max-width: 250px;", 
+                h3("Results"),
+                DTOutput("predictionOutput")
+              )
             )
           )
         )

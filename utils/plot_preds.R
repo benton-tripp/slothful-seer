@@ -66,7 +66,8 @@ plot.preds <- function(pred.lis, plot.type, model.names) {
         summarize(n=n()) %>% ungroup() %>% pull()
       plt.data <- plt.data %>%
         group_by(value, `Predicted/Actual`) %>%
-        summarize(`%` = round(n()/actual.total * 100, 2), .groups="keep")
+        summarize(`%` = round(n()/actual.total * 100, 2), .groups="keep") %>% 
+        filter(!is.na(value))
       plt <- ggplot(plt.data, aes(x=`Predicted/Actual`, y=`%`, fill=value)) + 
         geom_bar(stat="identity", color="black", alpha = 0.8, position="dodge") +
         theme_minimal() + 
