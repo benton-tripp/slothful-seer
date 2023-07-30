@@ -1,10 +1,12 @@
 # load libraries
 suppressWarnings(suppressPackageStartupMessages(library(shiny)))
 suppressWarnings(suppressPackageStartupMessages(library(shinydashboard)))
+suppressWarnings(suppressPackageStartupMessages(library(shinyWidgets)))
 suppressWarnings(suppressPackageStartupMessages(library(shinyjs)))
 suppressWarnings(suppressPackageStartupMessages(library(DT)))
 suppressWarnings(suppressPackageStartupMessages(library(leaflet)))
 suppressWarnings(suppressPackageStartupMessages(library(htmlwidgets)))
+
 source("utils/modeling_info_sidebar.R")
 
 main.sidebar <- dashboardSidebar(
@@ -204,8 +206,20 @@ data.page <- conditionalPanel(
     id="edaDataSection",
     div(
       class="shiny-row",
-      radioButtons("select_data_filter", label="Select Data", inline=T, 
-                   choices=c("Presence", "Absence", "All"), selected="All"),
+      div(
+        style="margin-right:10px;",
+        radioButtons("select_data_filter", label="Select Data", inline=T, 
+                     choices=c("Presence", "Absence", "All"), selected="All"),
+        div(
+          style="margin-top:5px;",
+          pickerInput(
+            inputId='select_columns', label="Select Fields", choices=NULL, 
+            options=pickerOptions(actionsBox=T, liveSearch=T, 
+                                  noneSelectedText='', 
+                                  liveSearchPlaceholder='Search'), 
+            multiple=T )
+        )
+      ),
       div(
         style="margin-left:15px",
         downloadButton("downloadData", 
@@ -1116,7 +1130,7 @@ model.page <- conditionalPanel(
         tabPanel(
           "Prediction",
           div(
-            class="shiny-row",
+            class="shiny-row; overflow-x:scroll;",
             div(
               div(style="max-width:300px; margin:5px;", verbatimTextOutput("hoverText")),
               br(),

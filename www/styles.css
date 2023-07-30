@@ -127,7 +127,8 @@ a {
     overflow-x: scroll !important;
   }
 
-#select_data_filter, #cont_plot_type, #cat_plot_type, #select_data_filter_cont, #select_data_filter_cat {
+#select_data_filter, #cont_plot_type, #cat_plot_type, #select_data_filter_cont, 
+#select_data_filter_cat {
     display: flex !important;
     align-items: left !important;
     margin-left: 15px !important;

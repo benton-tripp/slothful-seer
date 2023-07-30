@@ -5,7 +5,8 @@ cat("Loading libraries...\n")
 # Load libraries
 purrr::walk(
   c("shiny", "dismo", "sp", "maptools", "tidyverse", "ggpubr", "shinyjs", "skimr",
-    "leaflet", "leaflet.extras", "raster", "spatstat", "caret", "DT", "rJava"), 
+    "leaflet", "leaflet.extras", "raster", "spatstat", "caret", "DT", "rJava",
+    "shinyWidgets"), 
   function(.x) {
     cat("Loading the", .x, "library...\n")
     suppressWarnings(suppressPackageStartupMessages(library(.x, character.only=T)))
@@ -27,9 +28,14 @@ server <- function(input, output, session) {
   cat("Initializing Server...\n")
   ### Data Overview ###############################
   
+  # Update select input
+  updatePickerInput(session,  "select_columns", 
+                    choices=sort(names(df)[!(names(df) %in% c("presence", "lat", "lon"))]),
+                    selected=sort(names(df)[!(names(df) %in% c("presence", "lat", "lon"))]))
   # Data
-  observeEvent(c(input$sidebarMenu, input$select_data_filter), {
+  observeEvent(c(input$sidebarMenu, input$select_data_filter, input$select_columns), {
     if (input$sidebarMenu == "dataPanel") { 
+      # Filter by presence
       if (input$select_data_filter == "Presence") {
         data.selection <- presence.df
       } else if (input$select_data_filter == "Absence") {
@@ -37,9 +43,15 @@ server <- function(input, output, session) {
       } else {
         data.selection <- df
       }
+      
+      # Filter columns; Reorder columns with "presence" first and the remaining columns sorted
+      data.selection <- data.selection %>%
+          select(all_of(c("presence", "lon", "lat", input$select_columns)))
+      
+      # Render/format data table
       output$all_data_selection <- renderDT({
-        datatable(
-          data.selection %>% mutate(lat=round(lat,2), lon=round(lon,2)),
+        dt <- datatable(
+          data.selection %>% mutate(lat=round(lat,3), lon=round(lon,3)),
           rownames=F,
           selection='none',
           options=list(
@@ -53,7 +65,15 @@ server <- function(input, output, session) {
             pageLength=10
           )
         ) %>%
-          formatStyle(columns=names(data.selection), `font-size`="18px")
+          formatStyle(columns=names(data.selection), `font-size`="17px")
+        if (length(input$select_columns) > 0 & !is.null(input$select_columns)) {
+          if (!all(input$select_columns == "biome")) {
+            dt <- dt %>% 
+              formatSignif(columns=input$select_columns[input$select_columns != "biome"], 
+                           digits=6)
+          }
+        }
+        dt
       })
       
       #  Download data
@@ -243,6 +263,7 @@ server <- function(input, output, session) {
     updateNumericInput(session, "min_node_3", value = NA)
   })
   
+  # Save each of the models to a reactive variable
   model.vars <- reactive({
     if (input$modelTabs == "Model Fitting") {
       required_inputs <- c(input$split_perc, input$k_folds, input$glm_alpha_1, 
@@ -774,6 +795,7 @@ server <- function(input, output, session) {
       )
       })
       
+      # Render output rasters
       output$raster_estimate <- renderPlot({
         plot.preds(pred.lis, "Estimated Probability Raster", model.names)
       }, width=1000, height=500)
@@ -808,6 +830,7 @@ server <- function(input, output, session) {
     ")
   })
   
+  # Prediction tab
   observe({
     if (input$modelTabs == "Prediction") {
       # Make sure all models have been trained
@@ -815,6 +838,7 @@ server <- function(input, output, session) {
         output$predictionMap <- NULL
         incompleted.models.modal()
       } else {
+        # Render interactive plot through which to generate predictions by point
         output$predictionMap <- renderLeaflet({
           map.data(df, 
                    points=F, 
@@ -827,6 +851,7 @@ server <- function(input, output, session) {
                             labels = "Observation Area", opacity = 0.15)
         })
         
+        # Render hover text (lon/lat) output
         output$hoverText <- renderText({
           if(is.null(input$hover_coordinates)) {
             "Lat: None\nLng: None"
@@ -840,6 +865,7 @@ server <- function(input, output, session) {
     }
   })
   
+  # When the user clicks on the map:
   observeEvent(input$click_coordinates, {
     if (input$modelTabs == "Prediction") {
       # Make sure all models have been trained
@@ -877,6 +903,7 @@ server <- function(input, output, session) {
             pred <- predict.point(model.outputs$rf, raster.vals)$presence
           }
           cat("Model:", input$select_pred_model, "=", pred, "at {", .point$lon, .point$lat, "}\n")
+          # Render/format output table
           output$predictionOutput <- renderDT({
             pred.df <- cbind(.point, select(raster.vals, -lat, -lon)) %>% 
               t() %>% 

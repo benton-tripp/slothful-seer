@@ -42,7 +42,8 @@ RUN install2.r --error --deps TRUE \
     sf \
     rgdal \
     htmlwidgets \
-    rgeos
+    rgeos \
+    shinyWidgets
 
 # Make the Shiny app available at port 3838
 EXPOSE 3838
@@ -62,19 +63,9 @@ CMD ["R", "-e", "shiny::runGitHub('benton-tripp/slothful-seer', host = '0.0.0.0'
 
 # docker rmi slothful-seer-app -f
 
-# docker save -o slothful-seer-app.tar slothful-seer-app
-# gzip slothful-seer-app.tar
-# gunzip -c slothful-seer-app.tar.gz | docker load
-
-
-# NOT IN USE
-
-# Clone your Shiny app from GitHub to a temporary directory
-# RUN git clone https://github.com/benton-tripp/slothful-seer.git /tmp/slothful-seer
-
-# Move the contents to /srv/shiny-server/
-# RUN mv /tmp/slothful-seer/* /srv/shiny-server/
-
-# CMD ["R", "-e", "shiny::runApp('/srv/shiny-server/', host = '0.0.0.0', port = 3838)"]
+# docker login
+# docker tag slothful-seer-app:latest bentontripp/slothful-seer-app:latest
+# docker push bentontripp/slothful-seer-app:latest
+# docker pull bentontripp/slothful-seer-app:latest
 
 
