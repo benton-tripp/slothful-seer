@@ -657,35 +657,21 @@ server <- function(input, output, session) {
   raster.imgs <- map(raster.img.names, ~as.im(rasters[[.x]]))
   names(raster.imgs) <- raster.img.names
   
-  # Initialize prediction list
+  # Initialize prediction lists
   pred.lis <- list()
+  ipp.raster <- NULL
   
   observeEvent(c(input$modelTabs, input$predictionCutoff), {
-    if (input$modelTabs == "Prediction & Model Evaluation") {
+    if (input$modelTabs == "Model Evaluation") {
       # Reset prediction list
       pred.lis <<- list()
+      ipp.raster <<- NULL
       
       # Make sure all models have been trained
       if (is.empty(model.outputs) | any(is.null(model.outputs))) {
         runjs("$('#modelOutputs').css('border', '0 solid #888')")
-          showModal(
-            modalDialog(
-              title="Error Predicting/Evaluating Models:",
-              size="m",
-              easyClose=T,
-              div(
-                style="font-size:18px; margin:10px;",
-                span(
-                  tags$i("There are either no fitted models, or there is at least one model
-                      that was trained unsuccessfully due to a bad parameter input. Please
-                      ensure that all models have run successfully from the \"Model Fitting\" 
-                      tab prior to computing predictions and evaluating/comparing the 
-                      models.")
-                )
-              )
-            )
-          )
-        } else {
+        incompleted.models.modal()
+      } else {
           
         # Predictions 
         js$loadingPanel()
@@ -696,6 +682,7 @@ server <- function(input, output, session) {
           # IPP 
           ipp <- predict.ipp(model.outputs, raster.imgs, rasters, 
                              model.vars(), input$predictionCutoff)
+          ipp.raster <<- ipp$raster
           
           incProgress(0.2, detail = "Finished predicting/evaluating the IPP model.")
           cat("Finished predicting/evaluating the IPP model\n")
@@ -739,7 +726,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(c(input$render_model_results, input$predictionCutoff), {
-    if(!is.empty(pred.lis) & input$modelTabs == "Prediction & Model Evaluation") {
+    if(!is.empty(pred.lis) & input$modelTabs == "Model Evaluation") {
       # Update visualizations on Prediction/Evaluation page
 
       model.names <- c("IPP", "MaxEnt", "GLM", "Tree", "Random Forest")
@@ -819,6 +806,106 @@ server <- function(input, output, session) {
         $('#toggleRadioBtn').text('-');  
       }
     ")
+  })
+  
+  observe({
+    if (input$modelTabs == "Prediction") {
+      # Make sure all models have been trained
+      if (is.empty(model.outputs) | any(is.null(model.outputs))) {
+        output$predictionMap <- NULL
+        incompleted.models.modal()
+      } else {
+        output$predictionMap <- renderLeaflet({
+          map.data(df, 
+                   points=F, 
+                   max.bounds=c(min(df$lon), min(df$lat), max(df$lon), max(df$lat)),
+                   hover=T,
+                   raster.crs=crs(rasters[[1]])) %>% 
+            addPolygons(data=rgeos::gUnaryUnion(raster::crop(south.america, raster::extent(rasters[[1]]))),
+                              color=NA, fill=T, fillOpacity=0.15, fillColor="red") %>% 
+            addLegend(position = "topright", colors = "red", 
+                            labels = "Observation Area", opacity = 0.15)
+        })
+        
+        output$hoverText <- renderText({
+          if(is.null(input$hover_coordinates)) {
+            "Lat: None\nLng: None"
+          } else {
+            paste0("Lat: ", input$hover_coordinates[1], 
+                   "\nLng: ", input$hover_coordinates[2])
+          }
+        })
+        
+      }
+    }
+  })
+  
+  observeEvent(input$click_coordinates, {
+    if (input$modelTabs == "Prediction") {
+      # Make sure all models have been trained
+      if (is.empty(model.outputs) | any(is.null(model.outputs))) {
+        output$predictionMap <- NULL
+        incompleted.models.modal()
+      } else {
+        # Get point as dataframe
+        .point <- data.frame(lon=input$click_coordinates[2], lat=input$click_coordinates[1])
+        .method <- ifelse(input$cell_select_method == "Simple", "simple", "bilinear")
+        # Get values at point from rasters
+        raster.vals <- as.data.frame(raster::extract(rasters, .point, method=.method)) %>%
+          mutate(biome = factor(biome, levels=levels(df$biome)))
+        binary.raster.vals <- raster::extract(binary.rasters, .point, method=.method)
+        # Since IPP is picky, make sure you have the raster:
+        if (is.null(ipp.raster)) {
+          ipp.raster <<- predict.ipp(model.outputs, raster.imgs, rasters,
+                                     model.vars(), input$predictionCutoff)$raster
+        }
+        if (any(is.na(raster.vals))) {
+          output$predictionOutput <- NULL
+          showNotification(tags$span("Please select a point within the observation area"), 
+                           type="error")
+        } else {
+          # Get prediction of point based on model type
+          if (input$select_pred_model == "IPP") {
+            pred <- predict.ipp.point(ipp.raster, .point)
+          } else if (input$select_pred_model == "MaxEnt") {
+            pred <- predict.maxent.point(model.outputs$maxent, raster.vals)
+          } else if (input$select_pred_model == "GLM") {
+            pred <- predict.point(model.outputs$glm, binary.raster.vals)$presence
+          } else if (input$select_pred_model == "Classification Tree") {
+            pred <- predict.point(model.outputs$ct, raster.vals)$presence
+          } else if (input$select_pred_model == "Random Forest") {
+            pred <- predict.point(model.outputs$rf, raster.vals)$presence
+          }
+          cat("Model:", input$select_pred_model, "=", pred, "at {", .point$lon, .point$lat, "}\n")
+          output$predictionOutput <- renderDT({
+            pred.df <- cbind(.point, select(raster.vals, -lat, -lon)) %>% 
+              t() %>% 
+              as.data.frame() %>%
+              rownames_to_column("Variable") %>%
+              rename(Value = "V1") %>%
+              rbind(data.frame(
+                Variable=c("prediction", "probability"),
+                Value=c(ifelse(pred >= input$predictionCutoff_2, "presence", "no.presence"), 
+                        round(pred, 5))
+              ), .)
+            dt <- datatable(data=pred.df, 
+                            filter='none',
+                            selection='none',
+                            rownames=F,
+                            options=list(
+                              paging=F,
+                              searching=F,
+                              orderMulti=F,
+                              info=F,
+                              lengthChange = F
+                            )
+            ) %>%
+              formatStyle(columns=names(pred.df), `font-size`="15px")
+          })
+        }
+         
+      }
+    }
   })
   
   # After everything is loaded, send a message to hide the loading screen

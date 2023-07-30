@@ -3,6 +3,8 @@ suppressWarnings(suppressPackageStartupMessages(library(shiny)))
 suppressWarnings(suppressPackageStartupMessages(library(shinydashboard)))
 suppressWarnings(suppressPackageStartupMessages(library(shinyjs)))
 suppressWarnings(suppressPackageStartupMessages(library(DT)))
+suppressWarnings(suppressPackageStartupMessages(library(leaflet)))
+suppressWarnings(suppressPackageStartupMessages(library(htmlwidgets)))
 source("utils/modeling_info_sidebar.R")
 
 main.sidebar <- dashboardSidebar(
@@ -1040,7 +1042,7 @@ model.page <- conditionalPanel(
           )
         ),
         tabPanel(
-          "Prediction & Model Evaluation",
+          "Model Evaluation",
           div(
             class="shiny-row",
             div(
@@ -1108,6 +1110,33 @@ model.page <- conditionalPanel(
                   style="min-height:500px; min-width:150px;",
                   uiOutput("confusion_matrix")
                 )
+            )
+          )
+        ),
+        tabPanel(
+          "Prediction",
+          div(
+            class="shiny-row",
+            div(
+              div(style="max-width:300px; margin:5px;", verbatimTextOutput("hoverText")),
+              br(),
+              radioButtons("cell_select_method", "Cell Value Select Method",
+                           choices=c("Simple", "Interpolate")),
+              selectInput("select_pred_model", "Select Model",
+                          choices=c("IPP", "MaxEnt", "GLM", "Classification Tree", 
+                                    "Random Forest")),
+              selectInput("predictionCutoff_2", "Select Cutoff", 
+                          choices=seq(0.1, 0.9, by=0.1),
+                          selected=0.5)
+            ),
+            div(
+              id="predictionMapSection",
+              style="max-width: 600px; max-height:620px; margin:10px;",
+              leafletOutput("predictionMap", width=600, height=600)
+            ),
+            div(
+              h3("Results"),
+              DTOutput("predictionOutput")
             )
           )
         )

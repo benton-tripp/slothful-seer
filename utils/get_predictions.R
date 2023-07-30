@@ -2,7 +2,7 @@
 predict.ipp <- function(model.outputs, raster.imgs, rasters, model.vars, cutoff) {
   
   # Use predict.ppm to generate predicted intensities across rasters
-  predicted.intensities <- predict.ppm(model.outputs$ipp, covariates=raster.imgs)
+  predicted.intensities <- predict.ppm(model.outputs$ipp, covariates=raster.imgs, type="intensity")
   intensity.values <- as.matrix(predicted.intensities) %>% 
     reduce(c) %>% 
     keep(~!is.na(.x))

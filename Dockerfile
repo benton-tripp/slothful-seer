@@ -40,7 +40,8 @@ RUN install2.r --error --deps TRUE \
     Matrix \
     sp \
     sf \
-    rgdal
+    rgdal \
+    htmlwidgets
 
 # Make the Shiny app available at port 3838
 EXPOSE 3838

@@ -8,6 +8,14 @@ cat("Loading data...\n")
   presence = file.exists("data/presence.df.rds")
 )
 
+fix.raster <- function(r, shapefile, method) {
+  # Create an empty raster with the extent or the shapefile
+  target.raster <- raster(shapefile, nrows=nrow(r), ncols=ncol(r), resolution=raster::res(r))  
+  projected.raster <- projectRaster(r, target.raster, method = method)
+  masked.raster <- mask(projected.raster, shapefile)
+  return(masked.raster)
+}
+
 # Function to generate binary raster for a given biome
 create.binary.raster <- function(biome.value, biome.categories, .ras, rasters) {
   # cat("Biome Value: ", biome.value, "\n")
@@ -61,8 +69,6 @@ if (.file.check$bradypus) {
   # Reproject bradypus points to match the crs of South America
   bradypus <- sp::spTransform(bradypus, CRS=crs(south.america))
   
-  # Reproject the bradypus points
-  bradypus <- sp::spTransform(bradypus, CRS=crs(south.america))
   saveRDS(bradypus, "data/bradypus.rds")
 }
 
@@ -91,11 +97,16 @@ if (.file.check$rasters) {
   rasters <- stack(rasters, lon.raster, lat.raster)
   names(rasters) <- raster.names
   
-  # Fix crs for raster stack
-  crs(rasters) <- crs(south.america)
+  # Check the current CRS of the raster data
+  current.crs <- raster::projection(rasters)
   
-  # Set extent to be South America
-  extent(rasters) <- extent(south.america)
+  # Check if the current CRS matches the CRS of South America (desired CRS)
+  if (!identical(current.crs, crs(south.america))) {
+    rasters <- stack(map(raster.names, 
+                         ~fix.raster(rasters[[.x]], 
+                                     south.america, 
+                                     method=ifelse(.x=="biome", "ngb", "bilinear"))))
+  }
   
   cat("Caching raster stack...\n")
   saveRDS(readAll(rasters), "data/rasters.rds")
