@@ -41,7 +41,8 @@ RUN install2.r --error --deps TRUE \
     sp \
     sf \
     rgdal \
-    htmlwidgets
+    htmlwidgets \
+    rgeos
 
 # Make the Shiny app available at port 3838
 EXPOSE 3838
