@@ -1059,10 +1059,10 @@ model.page <- conditionalPanel(
                 style="margin-left:15px;",
                 actionButton("apply_model_updates", "Apply Updates & Fit Models")
               ),
-              div(
-                style="margin-left:15px;",
-                actionButton("undo_model_updates", "Undo Changes")
-              ),
+              # div(
+              #   style="margin-left:15px;",
+              #   actionButton("undo_model_updates", "Undo Changes")
+              # ),
               div(
                 style="margin-left:15px;",
                 actionButton("reset_model_updates", "Reset to Default")
